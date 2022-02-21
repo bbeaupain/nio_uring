@@ -19,29 +19,21 @@ Here's a super basic HTTP server from `sh.blake.niouring.examples.HttpHelloWorld
 
 ```java
 public static void main(String[] args) {
-    ByteBuffer response = ByteBufferUtil.wrapDirect("HTTP/1.1 200 OK\r\n\r\nHello, world!");
-
     IoUringServerSocket serverSocket = IoUringServerSocket.bind(8080).onAccept(socket -> {
-        socket.onRead(in -> socket.queueWrite(response)); // both read and write are zero-copy
-
-        socket.onWrite(out -> {
-            out.flip(); // reset shared response buffer for the next write
-            socket.close(); // HTTP spec says we should close after responding
+        socket.onRead(in -> {
+            String response = "HTTP/1.1 200 OK\r\n\r\nHello, world!";
+            ByteBuffer buffer = ByteBufferUtil.wrapDirect(response);
+            socket.queueWrite(buffer);
         });
-
-        socket.onException(ex -> {
-            ex.printStackTrace();
-            socket.close();
-        });
-
         socket.queueRead(ByteBuffer.allocateDirect(1024));
+        socket.onWrite(out -> socket.close());
+        socket.onException(ex -> socket.close());
     });
 
-    IoUring ring = new IoUring()
+    new IoUring()
         .onException(Exception::printStackTrace)
-        .queueAccept(serverSocket);
-
-    ring.loop();
+        .queueAccept(serverSocket)
+        .loop();
 }
 ```
 
