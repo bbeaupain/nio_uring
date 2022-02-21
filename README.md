@@ -29,7 +29,6 @@ public static void main(String[] args) {
         socket.onWrite(out -> socket.close());
         socket.onException(ex -> socket.close());
     });
-
     new IoUring()
         .onException(Exception::printStackTrace)
         .queueAccept(serverSocket)
