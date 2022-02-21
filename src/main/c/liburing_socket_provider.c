@@ -13,7 +13,7 @@ Java_sh_blake_niouring_IoUringServerSocket_create(JNIEnv *env, jclass cls) {
 
     sock = socket(PF_INET, SOCK_STREAM, 0);
     if (sock == -1) {
-        return throw_io_exception(env, "socket", sock);
+        return throw_exception(env, "socket", sock);
     }
 
     int enable = 1;
@@ -35,7 +35,7 @@ Java_sh_blake_niouring_IoUringServerSocket_bind(JNIEnv *env, jclass cls, jlong s
 
     int ret = bind(server_socket_fd, (const struct sockaddr *) &srv_addr, sizeof(srv_addr));
     if (ret < 0) {
-        return throw_io_exception(env, "bind", ret);
+        return throw_exception(env, "bind", ret);
     }
 
     ret = listen(server_socket_fd, backlog);
