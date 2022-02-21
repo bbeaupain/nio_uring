@@ -75,7 +75,7 @@ public final class IoUring {
                 }
             }
         } catch (Exception ex) {
-            if (exceptionHandler() != null) {
+            if (exceptionHandler != null) {
                 exceptionHandler.accept(ex);
             }
         } finally {
@@ -101,6 +101,7 @@ public final class IoUring {
                     if (buffer == null) {
                         throw new IllegalStateException("Buffer already removed");
                     }
+                    socket.readBufferMap().remove(bufferAddress);
                     handleReadCompletion(socket, buffer, result);
                 } else if (eventType == EVENT_TYPE_WRITE) {
                     ByteBuffer buffer = socket.writeBufferMap().get(bufferAddress);
