@@ -65,7 +65,7 @@ As of now, you should only call read/write/close operations from an `IoUring` ha
 All `ByteBuffer` instances used with this library must be direct (e.g. allocated with `allocateDirect`). This is a hard requirement and is what enables zero-copy functionality.
 
 ### Multiple reads/writes
-Queuing multiple operations is fine, but try not to queue an read/write operation for _the same_ buffer to the _same_ socket more than once per ring execution, because the internal mapping system is not designed to handle this. The data will be read/written, but order is not guaranteed, and an `java.lang.IllegalStateException` exception with message "Buffer already removed" will be thrown.
+Queuing multiple operations is fine, but try not to queue a read/write operation for _the same_ buffer to the _same_ socket more than once per ring execution, because the internal mapping system is not designed to handle this. The data will be read/written, but order is not guaranteed, and an `java.lang.IllegalStateException` exception with message "Buffer already removed" will be thrown.
 
 ## Building
 
