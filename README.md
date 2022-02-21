@@ -78,7 +78,7 @@ Queuing multiple operations is fine, but try not to queue an read/write operatio
 
 ## Building
 
-Set the `LIBURING_PATH` environment variable to the source root of a fully compiled liburing directory.
+Set the `LIBURING_PATH` environment variable to the root of a fully compiled liburing directory.
 
 Then `./gradlew build` and you're off!
 
