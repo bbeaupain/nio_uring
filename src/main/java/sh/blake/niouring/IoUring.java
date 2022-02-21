@@ -182,6 +182,9 @@ public final class IoUring {
      * @return this instance
      */
     public IoUring queueRead(IoUringSocket socket, ByteBuffer buffer) {
+        if (!buffer.isDirect()) {
+            throw new IllegalArgumentException("Buffer must be direct");
+        }
         long bufferAddress = IoUring.queueRead(ring, socket.fd(), buffer, buffer.position(), buffer.limit());
         socket.readBufferMap().put(bufferAddress, buffer);
         socket.setReadPending(true);
@@ -195,6 +198,9 @@ public final class IoUring {
      * @return this instance
      */
     public IoUring queueWrite(IoUringSocket socket, ByteBuffer buffer) {
+        if (!buffer.isDirect()) {
+            throw new IllegalArgumentException("Buffer must be direct");
+        }
         long bufferAddress = IoUring.queueWrite(ring, socket.fd(), buffer, buffer.position(), buffer.limit());
         socket.writeBufferMap().put(bufferAddress, buffer);
         socket.setWritePending(true);
