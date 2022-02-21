@@ -1,6 +1,6 @@
-package sh.niouring.core;
+package sh.blake.niouring;
 
-import sh.niouring.core.util.OsVersionCheck;
+import sh.blake.niouring.util.OsVersionCheck;
 
 import java.nio.ByteBuffer;
 import java.util.HashMap;

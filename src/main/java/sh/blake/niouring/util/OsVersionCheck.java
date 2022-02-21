@@ -1,4 +1,4 @@
-package sh.niouring.core.util;
+package sh.blake.niouring.util;
 
 public class OsVersionCheck {
     private static final String OS = "Linux";

@@ -1,4 +1,4 @@
-package sh.niouring.core;
+package sh.blake.niouring;
 
 import java.util.function.Consumer;
 

@@ -8,7 +8,7 @@
 #include <liburing.h>
 
 JNIEXPORT jlong JNICALL
-Java_sh_niouring_core_IoUringServerSocket_create(JNIEnv *env, jclass cls) {
+Java_sh_blake_niouring_IoUringServerSocket_create(JNIEnv *env, jclass cls) {
     int sock;
 
     sock = socket(PF_INET, SOCK_STREAM, 0);
@@ -26,7 +26,7 @@ Java_sh_niouring_core_IoUringServerSocket_create(JNIEnv *env, jclass cls) {
 }
 
 JNIEXPORT jint JNICALL
-Java_sh_niouring_core_IoUringServerSocket_bind(JNIEnv *env, jclass cls, jlong server_socket_fd, jstring host, jint port, jint backlog) {
+Java_sh_blake_niouring_IoUringServerSocket_bind(JNIEnv *env, jclass cls, jlong server_socket_fd, jstring host, jint port, jint backlog) {
     struct sockaddr_in srv_addr;
     memset(&srv_addr, 0, sizeof(srv_addr));
     srv_addr.sin_family = AF_INET;
@@ -47,6 +47,6 @@ Java_sh_niouring_core_IoUringServerSocket_bind(JNIEnv *env, jclass cls, jlong se
 }
 
 JNIEXPORT void JNICALL
-Java_sh_niouring_core_IoUringSocket_close(JNIEnv *env, jclass cls, jlong socket_fd) {
+Java_sh_blake_niouring_IoUringSocket_close(JNIEnv *env, jclass cls, jlong socket_fd) {
     close(socket_fd);
 }

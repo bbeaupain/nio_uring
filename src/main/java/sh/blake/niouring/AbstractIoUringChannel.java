@@ -1,4 +1,4 @@
-package sh.niouring.core;
+package sh.blake.niouring;
 
 /**
  * The type {@code AbstractIoUringSocket}.

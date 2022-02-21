@@ -15,7 +15,7 @@ For both of these, the higher the version the better - free performance!
 
 ## Example
 
-Here's a super basic HTTP server from `sh.niouring.core.examples.HttpHelloWorldTest`. There are a few other examples in the same package too.
+Here's a super basic HTTP server from `sh.blake.niouring.examples.HttpHelloWorldTest`. There are a few other examples in the same package too.
 
 ```java
 public static void main(String[] args) {
@@ -53,7 +53,7 @@ Is on the way!
 
 Pretty much all performance tuning is done with one knob - the `ringSize` argument to the `IoUring` constructor, which has a default value of 512 if not provided. This value controls the number of outstanding I/O events (accepts, reads, and writes) at any given time. It is constrained by `memlock` limits (`ulimit -l`) which can be increased as necessary. Don't forget about file descriptor limits (`ulimit -n`) too!
 
-Beyond this, you will have to run multiple rings across multiple threads. See `sh.niouring.core.examples.ParallelHttpEchoTest` for a simple starter using `java.util.concurrent` APIs.
+Beyond this, you will have to run multiple rings across multiple threads. See `sh.blake.niouring.examples.ParallelHttpEchoTest` for a simple starter using `java.util.concurrent` APIs.
 
 ## File Support
 

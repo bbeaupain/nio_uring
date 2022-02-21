@@ -1,8 +1,8 @@
-package sh.niouring.core.examples;
+package sh.blake.niouring.examples;
 
-import sh.niouring.core.IoUring;
-import sh.niouring.core.IoUringServerSocket;
-import sh.niouring.core.util.ByteBufferUtil;
+import sh.blake.niouring.IoUring;
+import sh.blake.niouring.IoUringServerSocket;
+import sh.blake.niouring.util.ByteBufferUtil;
 
 import java.nio.ByteBuffer;
 

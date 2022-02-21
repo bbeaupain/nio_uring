@@ -27,7 +27,7 @@ struct accept_request {
 };
 
 JNIEXPORT jlong JNICALL
-Java_sh_niouring_core_IoUring_createCqes(JNIEnv *env, jclass cls, jint count) {
+Java_sh_blake_niouring_IoUring_createCqes(JNIEnv *env, jclass cls, jint count) {
     struct io_uring_cqe **cqes = malloc(sizeof(struct io_uring_cqe *) * count);
     if (!cqes) {
         return throw_out_of_memory_error(env);
@@ -36,7 +36,7 @@ Java_sh_niouring_core_IoUring_createCqes(JNIEnv *env, jclass cls, jint count) {
 }
 
 JNIEXPORT jlong JNICALL
-Java_sh_niouring_core_IoUring_create(JNIEnv *env, jclass cls, jint maxEvents) {
+Java_sh_blake_niouring_IoUring_create(JNIEnv *env, jclass cls, jint maxEvents) {
     struct io_uring *ring = malloc(sizeof(struct io_uring));
     if (!ring) {
         return throw_out_of_memory_error(env);
@@ -51,7 +51,7 @@ Java_sh_niouring_core_IoUring_create(JNIEnv *env, jclass cls, jint maxEvents) {
 }
 
 JNIEXPORT jint JNICALL
-Java_sh_niouring_core_IoUring_submitAndGetCqes(JNIEnv *env, jclass cls, jlong ring_address, jlong cqes_address, jint cqes_size, jboolean should_wait) {
+Java_sh_blake_niouring_IoUring_submitAndGetCqes(JNIEnv *env, jclass cls, jlong ring_address, jlong cqes_address, jint cqes_size, jboolean should_wait) {
     struct io_uring *ring = (struct io_uring *) ring_address;
 
     int ret = io_uring_submit(ring);
@@ -75,13 +75,13 @@ Java_sh_niouring_core_IoUring_submitAndGetCqes(JNIEnv *env, jclass cls, jlong ri
 }
 
 JNIEXPORT void JNICALL
-Java_sh_niouring_core_IoUring_freeCqes(JNIEnv *env, jclass cls, jlong cqes_address) {
+Java_sh_blake_niouring_IoUring_freeCqes(JNIEnv *env, jclass cls, jlong cqes_address) {
     struct io_uring_cqe **cqes = (struct io_uring_cqe **) cqes_address;
     free(cqes);
 }
 
 JNIEXPORT jint JNICALL
-Java_sh_niouring_core_IoUring_getCqeEventType(JNIEnv *env, jclass cls, jlong cqes_address, jint cqe_index) {
+Java_sh_blake_niouring_IoUring_getCqeEventType(JNIEnv *env, jclass cls, jlong cqes_address, jint cqe_index) {
     struct io_uring_cqe **cqes = (struct io_uring_cqe **) cqes_address;
     struct io_uring_cqe *cqe = cqes[cqe_index];
     struct request *req = (struct request *) cqe->user_data;
@@ -89,7 +89,7 @@ Java_sh_niouring_core_IoUring_getCqeEventType(JNIEnv *env, jclass cls, jlong cqe
 }
 
 JNIEXPORT jlong JNICALL
-Java_sh_niouring_core_IoUring_getCqeFd(JNIEnv *env, jclass cls, jlong cqes_address, jint cqe_index) {
+Java_sh_blake_niouring_IoUring_getCqeFd(JNIEnv *env, jclass cls, jlong cqes_address, jint cqe_index) {
     struct io_uring_cqe **cqes = (struct io_uring_cqe **) cqes_address;
     struct io_uring_cqe *cqe = cqes[cqe_index];
     struct request *req = (struct request *) cqe->user_data;
@@ -97,14 +97,14 @@ Java_sh_niouring_core_IoUring_getCqeFd(JNIEnv *env, jclass cls, jlong cqes_addre
 }
 
 JNIEXPORT jint JNICALL
-Java_sh_niouring_core_IoUring_getCqeResult(JNIEnv *env, jclass cls, jlong cqes_address, jint cqe_index) {
+Java_sh_blake_niouring_IoUring_getCqeResult(JNIEnv *env, jclass cls, jlong cqes_address, jint cqe_index) {
     struct io_uring_cqe **cqes = (struct io_uring_cqe **) cqes_address;
     struct io_uring_cqe *cqe = cqes[cqe_index];
     return cqe->res;
 }
 
 JNIEXPORT jlong JNICALL
-Java_sh_niouring_core_IoUring_getCqeBufferAddress(JNIEnv *env, jclass cls, jlong cqes_address, jint cqe_index) {
+Java_sh_blake_niouring_IoUring_getCqeBufferAddress(JNIEnv *env, jclass cls, jlong cqes_address, jint cqe_index) {
     struct io_uring_cqe **cqes = (struct io_uring_cqe **) cqes_address;
     struct io_uring_cqe *cqe = cqes[cqe_index];
     struct request *req = (struct request *) cqe->user_data;
@@ -112,7 +112,7 @@ Java_sh_niouring_core_IoUring_getCqeBufferAddress(JNIEnv *env, jclass cls, jlong
 }
 
 JNIEXPORT void JNICALL
-Java_sh_niouring_core_IoUring_markCqeSeen(JNIEnv *env, jclass cls, jlong ring_address, jlong cqes_address, jint cqe_index) {
+Java_sh_blake_niouring_IoUring_markCqeSeen(JNIEnv *env, jclass cls, jlong ring_address, jlong cqes_address, jint cqe_index) {
     struct io_uring *ring = (struct io_uring *) ring_address;
     struct io_uring_cqe **cqes = (struct io_uring_cqe **) cqes_address;
     struct io_uring_cqe *cqe = cqes[cqe_index];
@@ -123,7 +123,7 @@ Java_sh_niouring_core_IoUring_markCqeSeen(JNIEnv *env, jclass cls, jlong ring_ad
 }
 
 JNIEXPORT jint JNICALL
-Java_sh_niouring_core_IoUring_queueAccept(JNIEnv *env, jclass cls, jlong ring_address, jlong server_socket_fd) {
+Java_sh_blake_niouring_IoUring_queueAccept(JNIEnv *env, jclass cls, jlong ring_address, jlong server_socket_fd) {
     struct io_uring *ring = (struct io_uring *) ring_address;
 
     struct io_uring_sqe *sqe = io_uring_get_sqe(ring);
@@ -146,7 +146,7 @@ Java_sh_niouring_core_IoUring_queueAccept(JNIEnv *env, jclass cls, jlong ring_ad
 }
 
 JNIEXPORT jlong JNICALL
-Java_sh_niouring_core_IoUring_queueRead(JNIEnv *env, jclass cls, jlong ring_address, jlong socket_fd, jobject byte_buffer, jint buffer_pos, jint buffer_len) {
+Java_sh_blake_niouring_IoUring_queueRead(JNIEnv *env, jclass cls, jlong ring_address, jlong socket_fd, jobject byte_buffer, jint buffer_pos, jint buffer_len) {
     void *buffer = (*env)->GetDirectBufferAddress(env, byte_buffer);
     if (buffer == NULL) {
         return throw_exception(env, "invalid byte buffer (read)", -16);
@@ -177,7 +177,7 @@ Java_sh_niouring_core_IoUring_queueRead(JNIEnv *env, jclass cls, jlong ring_addr
 }
 
 JNIEXPORT jlong JNICALL
-Java_sh_niouring_core_IoUring_queueWrite(JNIEnv *env, jclass cls, jlong ring_address, jlong socket_fd, jobject byte_buffer, jint buffer_pos, jint buffer_len) {
+Java_sh_blake_niouring_IoUring_queueWrite(JNIEnv *env, jclass cls, jlong ring_address, jlong socket_fd, jobject byte_buffer, jint buffer_pos, jint buffer_len) {
     void *buffer = (*env)->GetDirectBufferAddress(env, byte_buffer);
     if (buffer == NULL) {
         return throw_exception(env, "invalid byte buffer (write)", -16);

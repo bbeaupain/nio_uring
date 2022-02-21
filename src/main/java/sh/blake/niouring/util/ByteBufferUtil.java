@@ -1,4 +1,4 @@
-package sh.niouring.core.util;
+package sh.blake.niouring.util;
 
 import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;

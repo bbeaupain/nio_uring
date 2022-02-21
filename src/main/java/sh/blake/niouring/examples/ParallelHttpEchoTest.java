@@ -1,7 +1,7 @@
-package sh.niouring.core.examples;
+package sh.blake.niouring.examples;
 
-import sh.niouring.core.IoUring;
-import sh.niouring.core.IoUringServerSocket;
+import sh.blake.niouring.IoUring;
+import sh.blake.niouring.IoUringServerSocket;
 
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
