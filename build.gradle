@@ -1,0 +1,78 @@
+plugins {
+    id 'application'
+    id 'java'
+    id 'c'
+}
+
+group 'sh.blake.niouring'
+version '1.0-SNAPSHOT'
+
+sourceCompatibility = 1.8
+
+repositories {
+    mavenCentral()
+}
+
+dependencies {
+    testCompile group: 'junit', name: 'junit', version: '4.12'
+}
+
+application {
+    mainClassName = "sh.niouring.core.examples.ParallelHttpEchoTest"
+    applicationDefaultJvmArgs = ["-Djava.library.path=build/libs/nio_uring/shared", "-Dcom.sun.management.jmxremote"]
+}
+
+model {
+    binaries {
+        all {
+            if (toolChain in Gcc) {
+                cCompiler.args "-Wall", "-g", "-O2"
+            }
+        }
+    }
+
+    repositories {
+        libs(PrebuiltLibraries) {
+            jdk {
+                headers.srcDirs "${System.properties['java.home']}/include",
+                        "${System.properties['java.home']}/include/win32",
+                        "${System.properties['java.home']}/include/darwin",
+                        "${System.properties['java.home']}/include/linux"
+            }
+
+            liburing {
+                headers.srcDirs "${System.getenv("LIBURING_PATH")}/src",
+                        "${System.getenv("LIBURING_PATH")}/src/include",
+                        "${System.getenv("LIBURING_PATH")}/src/include/liburing"
+                binaries.withType(PrebuiltStaticLibraryBinary) {
+                    staticLibraryFile = file("${System.getenv("LIBURING_PATH")}/src/liburing.a")
+                }
+            }
+        }
+    }
+
+    platforms {
+        x64 { architecture "x86_64" }
+        x86 { architecture "x86" }
+    }
+
+    components {
+        nio_uring(NativeLibrarySpec) {
+            sources {
+                c {
+                    source {
+                        lib library: 'nio_uring', linkage: 'static'
+                        lib library: 'liburing', linkage: 'static'
+                        lib library: 'jdk', linkage: 'api'
+                        srcDir "src/main/c"
+                        include "**/*.c"
+                    }
+                }
+            }
+        }
+    }
+}
+
+build.dependsOn("nio_uringSharedLibrary")
+
+
