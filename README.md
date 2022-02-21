@@ -1,6 +1,6 @@
 # nio_uring
 
-`nio_uring` is a networking library for Java that uses [io_uring](https://en.wikipedia.org/wiki/Io_uring) introduced in Linux 5.1 under the hood, which aims to be:
+`nio_uring` is an I/O library for Java that uses [io_uring](https://en.wikipedia.org/wiki/Io_uring) under the hood, which aims to be:
 
 * A simple and flexible API
 * Super fast and efficient
@@ -81,3 +81,7 @@ Queuing multiple operations is fine, but try not to queue an read/write operatio
 Set the `LIBURING_PATH` environment variable to the source root of a fully compiled liburing directory.
 
 Then `./gradlew build` and you're off!
+
+## License
+
+MIT. Have fun and make cool things!
