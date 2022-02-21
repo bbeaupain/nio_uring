@@ -13,7 +13,6 @@ public class HttpEchoTest {
     public static void main(String[] args) {
         IoUringServerSocket serverSocket = IoUringServerSocket.bind(8080)
             .onAccept(HttpEchoTest::echoHandler);
-
         new IoUring()
             .onException(Exception::printStackTrace)
             .queueAccept(serverSocket)
@@ -26,7 +25,6 @@ public class HttpEchoTest {
             socket.queueWrite(in);
         });
         socket.queueRead(ByteBuffer.allocateDirect(1024));
-
         socket.onWrite(out -> socket.close());
         socket.onException(ex -> socket.close());
     }
