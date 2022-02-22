@@ -22,9 +22,9 @@ public final class IoUringSocket extends AbstractIoUringChannel {
 
     /**
      * Instantiates a new {@code IoUringSocket}.
-     *  @param ioUring    the io uring
+     * @param ioUring    the io uring
      * @param fd         the fd
-     * @param ipAddress
+     * @param ipAddress  the IP address
      */
     IoUringSocket(IoUring ioUring, long fd, String ipAddress) {
         super(fd);
