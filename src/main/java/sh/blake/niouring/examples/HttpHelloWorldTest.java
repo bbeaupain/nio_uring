@@ -19,7 +19,6 @@ public class HttpHelloWorldTest {
             socket.onWrite(out -> socket.close());
             socket.onException(ex -> socket.close());
         });
-
         new IoUring()
             .onException(Exception::printStackTrace)
             .queueAccept(serverSocket)

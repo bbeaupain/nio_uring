@@ -23,13 +23,13 @@ Here's a super basic HTTP server from `sh.blake.niouring.examples.HttpHelloWorld
 
 ```java
 public static void main(String[] args) {
-    IoUringServerSocket serverSocket = IoUringServerSocket.bind(8080).onAccept(socket -> {
+    IoUringServerSocket serverSocket = new IoUringServerSocket(8080).onAccept((ring, socket) -> {
         socket.onRead(in -> {
             String response = "HTTP/1.1 200 OK\r\n\r\nHello, world!";
             ByteBuffer buffer = ByteBufferUtil.wrapDirect(response);
-            socket.queueWrite(buffer);
+            ring.queueWrite(socket, buffer);
         });
-        socket.queueRead(ByteBuffer.allocateDirect(1024));
+        ring.queueRead(socket, ByteBuffer.allocateDirect(1024));
         socket.onWrite(out -> socket.close());
         socket.onException(ex -> socket.close());
     });
