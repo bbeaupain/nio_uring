@@ -102,7 +102,7 @@ public final class IoUring {
             long bufferAddress = IoUring.getCqeBufferAddress(cqes, i);
             try {
                 if (eventType == EVENT_TYPE_CONNECT) {
-                    handleConnectCompletion((AbstractIoUringSocket) channel);
+                    handleConnectCompletion((IoUringSocket) channel);
                 } else if (eventType == EVENT_TYPE_READ) {
                     int result = IoUring.getCqeResult(cqes, i);
                     ByteBuffer buffer = channel.readBufferMap().get(bufferAddress);
@@ -132,14 +132,13 @@ public final class IoUring {
         }
     }
 
-    private void handleConnectCompletion(AbstractIoUringSocket socket) {
+    private void handleConnectCompletion(IoUringSocket socket) {
         if (socket.connectHandler() != null) {
             socket.connectHandler().accept(this);
         }
     }
 
     private void handleAcceptCompletion(IoUringServerSocket serverSocket, long channelFd, String ipAddress) {
-        queueAccept(serverSocket);
         if (channelFd < 0) {
             return;
         }
@@ -151,7 +150,6 @@ public final class IoUring {
     }
 
     private void handleReadCompletion(AbstractIoUringChannel channel, ByteBuffer buffer, int bytesRead) {
-        channel.setReadPending(false);
         if (bytesRead < 0) {
             channel.close();
             return;
@@ -163,7 +161,6 @@ public final class IoUring {
     }
 
     private void handleWriteCompletion(AbstractIoUringChannel channel, ByteBuffer buffer, int bytesWritten) {
-        channel.setWritePending(false);
         if (bytesWritten < 0) {
             channel.close();
             return;
@@ -175,7 +172,6 @@ public final class IoUring {
                 channel.writeHandler().accept(buffer);
             }
         } else {
-            channel.setWritePending(true);
             queueWrite(channel, buffer);
         }
     }
@@ -217,7 +213,6 @@ public final class IoUring {
         }
         long bufferAddress = IoUring.queueRead(ring, channel.fd(), buffer, buffer.position(), buffer.limit());
         channel.readBufferMap().put(bufferAddress, buffer);
-        channel.setReadPending(true);
         return this;
     }
 
@@ -233,7 +228,6 @@ public final class IoUring {
         }
         long bufferAddress = IoUring.queueWrite(ring, channel.fd(), buffer, buffer.position(), buffer.limit());
         channel.writeBufferMap().put(bufferAddress, buffer);
-        channel.setWritePending(true);
         return this;
     }
 

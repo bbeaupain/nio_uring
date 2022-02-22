@@ -5,7 +5,6 @@ import java.util.function.Consumer;
 public class AbstractIoUringSocket extends AbstractIoUringChannel {
     private final String ipAddress;
     private final int port;
-    private Consumer<IoUring> connectHandler;
 
     public AbstractIoUringSocket(long fd, String ipAddress, int port) {
         super(fd);
@@ -19,14 +18,6 @@ public class AbstractIoUringSocket extends AbstractIoUringChannel {
 
     public int port() {
         return port;
-    }
-
-    Consumer<IoUring> connectHandler() {
-        return connectHandler;
-    }
-
-    public void onConnect(Consumer<IoUring> connectHandler) {
-        this.connectHandler = connectHandler;
     }
 
     static native long create();

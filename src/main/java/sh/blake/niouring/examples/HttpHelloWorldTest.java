@@ -9,19 +9,31 @@ import java.nio.ByteBuffer;
 
 public class HttpHelloWorldTest {
     public static void main(String[] args) {
-        IoUringServerSocket serverSocket = new IoUringServerSocket(8080).onAccept((ring, socket) -> {
-            socket.onRead(in -> {
-                String response = "HTTP/1.1 200 OK\r\n\r\nHello, world!";
-                ByteBuffer buffer = ByteBufferUtil.wrapDirect(response);
-                ring.queueWrite(socket, buffer);
-            });
+        String response = "HTTP/1.1 200 OK\r\n\r\nHello, world!";
+        ByteBuffer responseBuffer = ByteBufferUtil.wrapDirect(response);
+
+        IoUringServerSocket serverSocket = new IoUringServerSocket(8080);
+        serverSocket.onAccept((ring, socket) -> {
+            // queue another accept request for the next client
+            ring.queueAccept(serverSocket);
+
+            // set up the read handler and queue a read operation
+            socket.onRead(in -> ring.queueWrite(socket, responseBuffer.slice()));
             ring.queueRead(socket, ByteBuffer.allocateDirect(1024));
+
+            // HTTP spec says the server should close when done
             socket.onWrite(out -> socket.close());
-            socket.onException(ex -> socket.close());
+
+            // and some really basic error handling
+            socket.onException(ex -> {
+                ex.printStackTrace();
+                socket.close();
+            });
         });
+
         new IoUring()
             .onException(Exception::printStackTrace)
-            .queueAccept(serverSocket)
+            .queueAccept(serverSocket) // queue an accept request, onAccept will be called when a socket connects
             .loop();
     }
 }

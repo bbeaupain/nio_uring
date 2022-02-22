@@ -10,14 +10,13 @@ import java.util.function.Consumer;
  */
 public abstract class AbstractIoUringChannel {
     private final long fd;
-    private boolean closed = false;
     private final Map<Long, ByteBuffer> readBufferMap = new HashMap<>();
     private final Map<Long, ByteBuffer> writeBufferMap = new HashMap<>();
+    private boolean closed = false;
     private Consumer<ByteBuffer> readHandler;
     private Consumer<ByteBuffer> writeHandler;
     private Consumer<Exception> exceptionHandler;
-    private boolean writePending = false;
-    private boolean readPending = false;
+    private Runnable closeHandler;
 
     /**
      * Instantiates a new {@code AbstractIoUringSocket}.
@@ -35,12 +34,10 @@ public abstract class AbstractIoUringChannel {
         if (closed) {
             return;
         }
-        if (!isReadPending() && !isWritePending()) {
-            AbstractIoUringChannel.close(fd);
-            closed = true;
-        } else {
-            // let's queue this for closure upon completion?
-            throw new RuntimeException("Cannot close with pending I/O events"); // or can we?
+        AbstractIoUringChannel.close(fd);
+        closed = true;
+        if (closeHandler != null) {
+            closeHandler.run();
         }
     }
 
@@ -59,16 +56,7 @@ public abstract class AbstractIoUringChannel {
      * @return whether write is pending
      */
     public boolean isWritePending() {
-        return writePending;
-    }
-
-    /**
-     * Sets write pending.
-     *
-     * @param writePending the write pending
-     */
-    void setWritePending(boolean writePending) {
-        this.writePending = writePending;
+        return !writeBufferMap.isEmpty();
     }
 
     /**
@@ -77,16 +65,7 @@ public abstract class AbstractIoUringChannel {
      * @return whether read is pending
      */
     public boolean isReadPending() {
-        return readPending;
-    }
-
-    /**
-     * Sets read pending.
-     *
-     * @param readPending the read pending
-     */
-    void setReadPending(boolean readPending) {
-        this.readPending = readPending;
+        return !readBufferMap.isEmpty();
     }
 
     /**
@@ -167,8 +146,20 @@ public abstract class AbstractIoUringChannel {
         return this;
     }
 
+    Runnable closeHandler() {
+        return closeHandler;
+    }
+
+    public void onClose(Runnable closeHandler) {
+        this.closeHandler = closeHandler;
+    }
+
     public boolean isClosed() {
         return closed;
+    }
+
+    public boolean isOpen() {
+        return !closed;
     }
 
     public static native void close(long fd);
