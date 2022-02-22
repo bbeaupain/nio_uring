@@ -51,19 +51,19 @@ public final class IoUring {
     /**
      * Submits all queued I/O operations to the kernel and waits an unlimited amount of time for any to complete.
      */
-    public void execute() {
-        doExecute(true);
+    public int execute() {
+        return doExecute(true);
     }
 
     /**
      * Submits all queued I/O operations to the kernel and handles any pending completion events, returning immediately
      * if none are present.
      */
-    public void executeNow() {
-        doExecute(false);
+    public int executeNow() {
+        return doExecute(false);
     }
 
-    private void doExecute(boolean shouldWait) {
+    private int doExecute(boolean shouldWait) {
         long cqes = IoUring.createCqes(ringSize);
         try {
             int count = IoUring.submitAndGetCqes(ring, cqes, ringSize, shouldWait);
@@ -74,6 +74,7 @@ public final class IoUring {
                     IoUring.markCqeSeen(ring, cqes, i);
                 }
             }
+            return count;
         } catch (Exception ex) {
             if (exceptionHandler != null) {
                 exceptionHandler.accept(ex);
@@ -81,6 +82,7 @@ public final class IoUring {
         } finally {
             IoUring.freeCqes(cqes);
         }
+        return -1;
     }
 
     private void handleEventCompletion(long cqes, int i) {
@@ -88,7 +90,8 @@ public final class IoUring {
         int eventType = IoUring.getCqeEventType(cqes, i);
         int result = IoUring.getCqeResult(cqes, i);
         if (eventType == EVENT_TYPE_ACCEPT) {
-            handleAcceptCompletion(fd, result);
+            String ipAddress = IoUring.getCqeIpAddress(cqes, i);
+            handleAcceptCompletion(fd, result, ipAddress);
         } else {
             IoUringSocket socket = (IoUringSocket) fdToSocket.get(fd);
             if (socket == null || socket.isClosed()) {
@@ -119,13 +122,13 @@ public final class IoUring {
         }
     }
 
-    private void handleAcceptCompletion(long serverSocketFd, long socketFd) {
+    private void handleAcceptCompletion(long serverSocketFd, long socketFd, String ipAddress) {
         IoUringServerSocket serverSocket = (IoUringServerSocket) fdToSocket.get(serverSocketFd);
         queueAccept(serverSocket);
         if (socketFd < 0) {
             return;
         }
-        IoUringSocket socket = new IoUringSocket(this, socketFd);
+        IoUringSocket socket = new IoUringSocket(this, socketFd, ipAddress);
         fdToSocket.put(socket.fd(), socket);
         if (serverSocket.acceptHandler() != null) {
             serverSocket.acceptHandler().accept(socket);
@@ -243,6 +246,7 @@ public final class IoUring {
     private static native long getCqeFd(long cqes, long cqeIndex);
     private static native int getCqeResult(long cqes, long cqeIndex);
     private static native long getCqeBufferAddress(long cqes, long cqeIndex);
+    private static native String getCqeIpAddress(long cqes, long cqeIndex);
     private static native int markCqeSeen(long ring, long cqes, long cqeIndex);
     private static native int queueAccept(long ring, long serverSocketFd);
     private static native long queueRead(long ring, long socketFd, ByteBuffer buffer, int bufferPos, int bufferLen);

@@ -8,6 +8,7 @@
 #include <liburing.h>
 #include <string.h>
 #include <errno.h>
+#include <arpa/inet.h>
 
 #define EVENT_TYPE_ACCEPT   0
 #define EVENT_TYPE_READ     1
@@ -109,6 +110,15 @@ Java_sh_blake_niouring_IoUring_getCqeBufferAddress(JNIEnv *env, jclass cls, jlon
     struct io_uring_cqe *cqe = cqes[cqe_index];
     struct request *req = (struct request *) cqe->user_data;
     return (long) req->buffer_addr;
+}
+
+JNIEXPORT jstring JNICALL
+Java_sh_blake_niouring_IoUring_getCqeIpAddress(JNIEnv *env, jclass cls, jlong cqes_address, jint cqe_index) {
+    struct io_uring_cqe **cqes = (struct io_uring_cqe **) cqes_address;
+    struct io_uring_cqe *cqe = cqes[cqe_index];
+    struct accept_request *req = (struct accept_request *) cqe->user_data;
+    char *ip_address = inet_ntoa(req->client_addr.sin_addr);
+    return (*env)->NewStringUTF(env, ip_address);
 }
 
 JNIEXPORT void JNICALL

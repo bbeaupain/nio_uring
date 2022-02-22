@@ -27,6 +27,9 @@ Java_sh_blake_niouring_IoUring_getCqeResult(JNIEnv *env, jclass cls, jlong cqes_
 JNIEXPORT jlong JNICALL
 Java_sh_blake_niouring_IoUring_getCqeBufferAddress(JNIEnv *env, jclass cls, jlong cqes_address, jint cqe_index);
 
+JNIEXPORT jstring JNICALL
+Java_sh_blake_niouring_IoUring_getCqeIpAddress(JNIEnv *env, jclass cls, jlong cqes_address, jint cqe_index);
+
 JNIEXPORT void JNICALL
 Java_sh_blake_niouring_IoUring_markCqeSeen(JNIEnv *env, jclass cls, jlong ring_address, jlong cqes_address, jint cqe_index);
 

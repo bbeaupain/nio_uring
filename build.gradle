@@ -18,7 +18,7 @@ dependencies {
 }
 
 application {
-    mainClassName = "sh.blake.niouring.examples.ParallelHttpEchoTest"
+    mainClassName = "sh.blake.niouring.examples.HttpHelloWorldTest"
     applicationDefaultJvmArgs = ["-Djava.library.path=build/libs/nio_uring/shared", "-Dcom.sun.management.jmxremote"]
 }
 

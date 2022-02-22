@@ -56,7 +56,7 @@ public final class IoUringServerSocket extends AbstractIoUringChannel {
     /**
      * Instantiates a new {@code IoUringServerSocket}.
      */
-    private IoUringServerSocket() {
+    public IoUringServerSocket() {
         super(create());
     }
 

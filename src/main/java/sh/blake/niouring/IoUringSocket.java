@@ -12,6 +12,7 @@ public final class IoUringSocket extends AbstractIoUringChannel {
     private final IoUring ioUring;
     private final Map<Long, ByteBuffer> readBufferMap = new HashMap<>();
     private final Map<Long, ByteBuffer> writeBufferMap = new HashMap<>();
+    private final String ipAddress;
     private Consumer<ByteBuffer> readHandler;
     private Consumer<ByteBuffer> writeHandler;
     private Consumer<Exception> exceptionHandler;
@@ -21,13 +22,14 @@ public final class IoUringSocket extends AbstractIoUringChannel {
 
     /**
      * Instantiates a new {@code IoUringSocket}.
-     *
-     * @param ioUring    the io uring
+     *  @param ioUring    the io uring
      * @param fd         the fd
+     * @param ipAddress
      */
-    IoUringSocket(IoUring ioUring, long fd) {
+    IoUringSocket(IoUring ioUring, long fd, String ipAddress) {
         super(fd);
         this.ioUring = ioUring;
+        this.ipAddress = ipAddress;
     }
 
     /**
@@ -188,6 +190,9 @@ public final class IoUringSocket extends AbstractIoUringChannel {
         return writeBufferMap;
     }
 
+    public String ipAddress() {
+        return ipAddress;
+    }
 
     /**
      * Sets the handler to be called when an exception is caught while handling I/O for the socket.
