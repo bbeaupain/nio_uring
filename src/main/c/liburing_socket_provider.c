@@ -5,33 +5,42 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <netinet/in.h>
+#include <arpa/inet.h>
 #include <liburing.h>
+#include <unistd.h>
+#include <string.h>
 
 JNIEXPORT jlong JNICALL
-Java_sh_blake_niouring_IoUringServerSocket_create(JNIEnv *env, jclass cls) {
-    int sock;
+Java_sh_blake_niouring_AbstractIoUringSocket_create(JNIEnv *env, jclass cls) {
+    int val = 1;
 
-    sock = socket(PF_INET, SOCK_STREAM, 0);
-    if (sock == -1) {
-        return throw_exception(env, "socket", sock);
+    int fd = socket(PF_INET, SOCK_STREAM, 0);
+    if (fd == -1) {
+        return throw_exception(env, "socket", fd);
     }
 
-    int enable = 1;
-    int ret = setsockopt(sock, SOL_SOCKET, SO_REUSEADDR, &enable, sizeof(int));
+    int ret = setsockopt(fd, SOL_SOCKET, SO_REUSEADDR, &val, sizeof(int));
     if (ret < 0) {
         return throw_exception(env, "setsockopt", ret);
     }
 
-    return (long) sock;
+    ret = setsockopt(fd, SOL_SOCKET, SO_REUSEPORT, &val, sizeof(val));
+    if (ret == -1) {
+        return throw_exception(env, "setsockopt", ret);
+    }
+
+    return (long) fd;
 }
 
 JNIEXPORT jint JNICALL
-Java_sh_blake_niouring_IoUringServerSocket_bind(JNIEnv *env, jclass cls, jlong server_socket_fd, jstring host, jint port, jint backlog) {
+Java_sh_blake_niouring_IoUringServerSocket_bind(JNIEnv *env, jclass cls, jlong server_socket_fd, jstring ip_address, jint port, jint backlog) {
+    char *ip = (*env)->GetStringUTFChars(env, ip_address, NULL);
+
     struct sockaddr_in srv_addr;
     memset(&srv_addr, 0, sizeof(srv_addr));
     srv_addr.sin_family = AF_INET;
     srv_addr.sin_port = htons(port);
-    srv_addr.sin_addr.s_addr = htonl(INADDR_ANY);
+    srv_addr.sin_addr.s_addr = inet_addr(ip);
 
     int ret = bind(server_socket_fd, (const struct sockaddr *) &srv_addr, sizeof(srv_addr));
     if (ret < 0) {
@@ -47,6 +56,6 @@ Java_sh_blake_niouring_IoUringServerSocket_bind(JNIEnv *env, jclass cls, jlong s
 }
 
 JNIEXPORT void JNICALL
-Java_sh_blake_niouring_IoUringSocket_close(JNIEnv *env, jclass cls, jlong socket_fd) {
+Java_sh_blake_niouring_AbstractIoUringChannel_close(JNIEnv *env, jclass cls, jlong socket_fd) {
     close(socket_fd);
 }

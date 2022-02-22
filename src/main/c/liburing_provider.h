@@ -36,6 +36,9 @@ Java_sh_blake_niouring_IoUring_markCqeSeen(JNIEnv *env, jclass cls, jlong ring_a
 JNIEXPORT jint JNICALL
 Java_sh_blake_niouring_IoUring_queueAccept(JNIEnv *env, jclass cls, jlong ring_address, jlong server_socket_fd);
 
+JNIEXPORT jint JNICALL
+Java_sh_blake_niouring_IoUring_queueConnect(JNIEnv *env, jclass cls, jlong ring_address, jlong socket_fd, jstring ip_address, jint port);
+
 JNIEXPORT jlong JNICALL
 Java_sh_blake_niouring_IoUring_queueRead(JNIEnv *env, jclass cls, jlong ring_address, jlong socket_fd, jobject byte_buffer, jint buffer_pos, jint buffer_len);
 

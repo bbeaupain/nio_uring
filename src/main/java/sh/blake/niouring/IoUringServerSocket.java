@@ -1,63 +1,37 @@
 package sh.blake.niouring;
 
-import java.util.function.Consumer;
+import java.util.function.BiConsumer;
 
 /**
  * A {@code ServerSocket} analog for working with an {@code io_uring}.
  */
-public final class IoUringServerSocket extends AbstractIoUringChannel {
+public final class IoUringServerSocket extends AbstractIoUringSocket {
     private static final int DEFAULT_BACKLOG = 65535;
 
-    private Consumer<IoUringSocket> acceptHandler;
+    private BiConsumer<IoUring, IoUringSocket> acceptHandler;
+    private String address;
+    private int port;
 
     /**
-     * Creates an {@code IoUringServerSocket} bound to an address and port with the specified backlog size.
-     * @param address The address
-     * @param port The port
-     * @param backlog The backlog
-     * @return The IoUringServerSocket
+     * Instantiates a new {@code IoUringServerSocket}.
      */
-    public static IoUringServerSocket bind(String address, int port, int backlog) {
-        IoUringServerSocket serverSocket = new IoUringServerSocket();
-        IoUringServerSocket.bind(serverSocket.fd(), address, port, backlog);
-        return serverSocket;
-    }
-    /**
-     * Creates an {@code IoUringServerSocket} bound to an address and port with the default backlog size.
-     * @param address The address
-     * @param port The port
-     * @return The IoUringServerSocket
-     */
-    public static IoUringServerSocket bind(String address, int port) {
-        return bind(address, port, DEFAULT_BACKLOG);
-    }
-
-    /**
-     * Creates an {@code IoUringServerSocket} bound to address {@code "127.0.0.1"} on the specified port with the
-     * specified backlog size.
-     * @param port The port
-     * @param backlog The backlog
-     * @return The IoUringServerSocket
-     */
-    public static IoUringServerSocket bind(int port, int backlog) {
-        return bind("127.0.0.1", port, backlog);
-    }
-
-    /**
-     * Creates an {@code IoUringServerSocket} bound to address {@code "127.0.0.1"} on the specified port with the
-     * default backlog size.
-     * @param port The port
-     * @return The IoUringServerSocket
-     */
-    public static IoUringServerSocket bind(int port) {
-        return bind("127.0.0.1", port, DEFAULT_BACKLOG);
+    public IoUringServerSocket(String address, int port, int backlog) {
+        super(AbstractIoUringSocket.create(), address, port);
+        IoUringServerSocket.bind(fd(), address, port, backlog);
     }
 
     /**
      * Instantiates a new {@code IoUringServerSocket}.
      */
-    public IoUringServerSocket() {
-        super(create());
+    public IoUringServerSocket(String address, int port) {
+        this(address, port, DEFAULT_BACKLOG);
+    }
+
+    /**
+     * Instantiates a new {@code IoUringServerSocket}.
+     */
+    public IoUringServerSocket(int port) {
+        this("127.0.0.1", port, DEFAULT_BACKLOG);
     }
 
     /**
@@ -65,7 +39,7 @@ public final class IoUringServerSocket extends AbstractIoUringChannel {
      *
      * @return the accept handler
      */
-    Consumer<IoUringSocket> acceptHandler() {
+    BiConsumer<IoUring, IoUringSocket> acceptHandler() {
         return acceptHandler;
     }
 
@@ -75,12 +49,19 @@ public final class IoUringServerSocket extends AbstractIoUringChannel {
      * @param acceptHandler the accept handler
      * @return this instance
      */
-    public IoUringServerSocket onAccept(Consumer<IoUringSocket> acceptHandler) {
+    public IoUringServerSocket onAccept(BiConsumer<IoUring, IoUringSocket> acceptHandler) {
         this.acceptHandler = acceptHandler;
         return this;
     }
 
-    private static native long create();
+    public String getAddress() {
+        return address;
+    }
+
+    public int getPort() {
+        return port;
+    }
+
     private static native int bind(long fd, String host, int port, int backlog);
 
     static {

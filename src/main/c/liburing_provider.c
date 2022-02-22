@@ -9,10 +9,12 @@
 #include <string.h>
 #include <errno.h>
 #include <arpa/inet.h>
+#include <unistd.h>
 
 #define EVENT_TYPE_ACCEPT   0
 #define EVENT_TYPE_READ     1
 #define EVENT_TYPE_WRITE    2
+#define EVENT_TYPE_CONNECT  3
 
 struct request {
     int fd;
@@ -145,6 +147,7 @@ Java_sh_blake_niouring_IoUring_queueAccept(JNIEnv *env, jclass cls, jlong ring_a
     if (!req) {
         return throw_out_of_memory_error(env);
     }
+    memset(&req->client_addr, 0, sizeof(req->client_addr));
     req->client_addr_len = sizeof(req->client_addr);
     req->event_type = EVENT_TYPE_ACCEPT;
     req->fd = server_socket_fd;
@@ -155,8 +158,36 @@ Java_sh_blake_niouring_IoUring_queueAccept(JNIEnv *env, jclass cls, jlong ring_a
     return 0;
 }
 
+JNIEXPORT jint JNICALL
+Java_sh_blake_niouring_IoUring_queueConnect(JNIEnv *env, jclass cls, jlong ring_address, jlong socket_fd, jstring ip_address, jint port) {
+    struct io_uring *ring = (struct io_uring *) ring_address;
+
+    struct io_uring_sqe *sqe = io_uring_get_sqe(ring);
+    if (sqe == NULL) {
+        return throw_exception(env, "io_uring_get_sqe", -16);
+    }
+
+    struct accept_request *req = malloc(sizeof(*req));
+    if (!req) {
+        return throw_out_of_memory_error(env);
+    }
+    char *ip = (*env)->GetStringUTFChars(env, ip_address, NULL);
+    memset(&req->client_addr, 0, sizeof(req->client_addr));
+    req->client_addr.sin_addr.s_addr = inet_addr(ip);
+    req->client_addr.sin_port = htons(port);
+    req->client_addr.sin_family = AF_INET;
+    req->client_addr_len = sizeof(req->client_addr);
+    req->event_type = EVENT_TYPE_CONNECT;
+    req->fd = socket_fd;
+
+    io_uring_prep_connect(sqe, socket_fd, (struct sockaddr *) &req->client_addr, req->client_addr_len);
+    io_uring_sqe_set_data(sqe, req);
+
+    return 0;
+}
+
 JNIEXPORT jlong JNICALL
-Java_sh_blake_niouring_IoUring_queueRead(JNIEnv *env, jclass cls, jlong ring_address, jlong socket_fd, jobject byte_buffer, jint buffer_pos, jint buffer_len) {
+Java_sh_blake_niouring_IoUring_queueRead(JNIEnv *env, jclass cls, jlong ring_address, jlong fd, jobject byte_buffer, jint buffer_pos, jint buffer_len) {
     void *buffer = (*env)->GetDirectBufferAddress(env, byte_buffer);
     if (buffer == NULL) {
         return throw_exception(env, "invalid byte buffer (read)", -16);
@@ -177,17 +208,17 @@ Java_sh_blake_niouring_IoUring_queueRead(JNIEnv *env, jclass cls, jlong ring_add
         return throw_out_of_memory_error(env);
     }
     req->event_type = EVENT_TYPE_READ;
-    req->fd = socket_fd;
     req->buffer_addr = buffer;
+    req->fd = fd;
 
-    io_uring_prep_read(sqe, socket_fd, buffer, buffer_len, 0);
+    io_uring_prep_read(sqe, fd, buffer, buffer_len, 0);
     io_uring_sqe_set_data(sqe, req);
 
     return (long) buffer;
 }
 
 JNIEXPORT jlong JNICALL
-Java_sh_blake_niouring_IoUring_queueWrite(JNIEnv *env, jclass cls, jlong ring_address, jlong socket_fd, jobject byte_buffer, jint buffer_pos, jint buffer_len) {
+Java_sh_blake_niouring_IoUring_queueWrite(JNIEnv *env, jclass cls, jlong ring_address, jlong fd, jobject byte_buffer, jint buffer_pos, jint buffer_len) {
     void *buffer = (*env)->GetDirectBufferAddress(env, byte_buffer);
     if (buffer == NULL) {
         return throw_exception(env, "invalid byte buffer (write)", -16);
@@ -207,11 +238,11 @@ Java_sh_blake_niouring_IoUring_queueWrite(JNIEnv *env, jclass cls, jlong ring_ad
     if (!req) {
         return throw_out_of_memory_error(env);
     }
-    req->fd = socket_fd;
     req->event_type = EVENT_TYPE_WRITE;
     req->buffer_addr = buffer;
+    req->fd = fd;
 
-    io_uring_prep_write(sqe, req->fd, buffer, buffer_len, 0);
+    io_uring_prep_write(sqe, fd, buffer, buffer_len, 0);
     io_uring_sqe_set_data(sqe, req);
 
     return (long) buffer;
@@ -224,6 +255,5 @@ int throw_exception(JNIEnv *env, char *cause, int ret) {
 }
 
 int throw_out_of_memory_error(JNIEnv *env) {
-    char error_msg = "Out of heap space";
-    return (*env)->ThrowNew(env, (*env)->FindClass(env, "java/lang/OutOfMemoryError"), &error_msg);
+    return (*env)->ThrowNew(env, (*env)->FindClass(env, "java/lang/OutOfMemoryError"), "Out of heap space");
 }

@@ -15,6 +15,7 @@ public final class IoUring {
     private static final int EVENT_TYPE_ACCEPT = 0;
     private static final int EVENT_TYPE_READ = 1;
     private static final int EVENT_TYPE_WRITE = 2;
+    private static final int EVENT_TYPE_CONNECT = 3;
 
     private final long ring;
     private final int ringSize;
@@ -88,80 +89,94 @@ public final class IoUring {
     private void handleEventCompletion(long cqes, int i) {
         long fd = IoUring.getCqeFd(cqes, i);
         int eventType = IoUring.getCqeEventType(cqes, i);
-        int result = IoUring.getCqeResult(cqes, i);
         if (eventType == EVENT_TYPE_ACCEPT) {
+            int result = IoUring.getCqeResult(cqes, i);
+            IoUringServerSocket serverSocket = (IoUringServerSocket) fdToSocket.get(fd);
             String ipAddress = IoUring.getCqeIpAddress(cqes, i);
-            handleAcceptCompletion(fd, result, ipAddress);
+            handleAcceptCompletion(serverSocket, result, ipAddress);
         } else {
-            IoUringSocket socket = (IoUringSocket) fdToSocket.get(fd);
-            if (socket == null || socket.isClosed()) {
+            AbstractIoUringChannel channel = fdToSocket.get(fd);
+            if (channel == null || channel.isClosed()) {
                 return;
             }
             long bufferAddress = IoUring.getCqeBufferAddress(cqes, i);
             try {
-                if (eventType == EVENT_TYPE_READ) {
-                    ByteBuffer buffer = socket.readBufferMap().get(bufferAddress);
+                if (eventType == EVENT_TYPE_CONNECT) {
+                    handleConnectCompletion((AbstractIoUringSocket) channel);
+                } else if (eventType == EVENT_TYPE_READ) {
+                    int result = IoUring.getCqeResult(cqes, i);
+                    ByteBuffer buffer = channel.readBufferMap().get(bufferAddress);
                     if (buffer == null) {
                         throw new IllegalStateException("Buffer already removed");
                     }
-                    socket.readBufferMap().remove(bufferAddress);
-                    handleReadCompletion(socket, buffer, result);
+                    channel.readBufferMap().remove(bufferAddress);
+                    handleReadCompletion(channel, buffer, result);
                 } else if (eventType == EVENT_TYPE_WRITE) {
-                    ByteBuffer buffer = socket.writeBufferMap().get(bufferAddress);
+                    int result = IoUring.getCqeResult(cqes, i);
+                    ByteBuffer buffer = channel.writeBufferMap().get(bufferAddress);
                     if (buffer == null) {
                         throw new IllegalStateException("Buffer already removed");
                     }
-                    socket.writeBufferMap().remove(bufferAddress);
-                    handleWriteCompletion(socket, buffer, result);
+                    channel.writeBufferMap().remove(bufferAddress);
+                    handleWriteCompletion(channel, buffer, result);
                 }
             } catch (RuntimeException ex) {
-                if (socket.exceptionHandler() != null) {
-                    socket.exceptionHandler().accept(ex);
+                if (channel.exceptionHandler() != null) {
+                    channel.exceptionHandler().accept(ex);
+                }
+            } finally {
+                if (channel.isClosed()) {
+                    deregister(channel);
                 }
             }
         }
     }
 
-    private void handleAcceptCompletion(long serverSocketFd, long socketFd, String ipAddress) {
-        IoUringServerSocket serverSocket = (IoUringServerSocket) fdToSocket.get(serverSocketFd);
-        queueAccept(serverSocket);
-        if (socketFd < 0) {
-            return;
-        }
-        IoUringSocket socket = new IoUringSocket(this, socketFd, ipAddress);
-        fdToSocket.put(socket.fd(), socket);
-        if (serverSocket.acceptHandler() != null) {
-            serverSocket.acceptHandler().accept(socket);
+    private void handleConnectCompletion(AbstractIoUringSocket socket) {
+        if (socket.connectHandler() != null) {
+            socket.connectHandler().accept(this);
         }
     }
 
-    private void handleReadCompletion(IoUringSocket socket, ByteBuffer buffer, int bytesRead) {
-        socket.setReadPending(false);
+    private void handleAcceptCompletion(IoUringServerSocket serverSocket, long channelFd, String ipAddress) {
+        queueAccept(serverSocket);
+        if (channelFd < 0) {
+            return;
+        }
+        IoUringSocket channel = new IoUringSocket(channelFd, ipAddress, serverSocket.getPort());
+        fdToSocket.put(channel.fd(), channel);
+        if (serverSocket.acceptHandler() != null) {
+            serverSocket.acceptHandler().accept(this, channel);
+        }
+    }
+
+    private void handleReadCompletion(AbstractIoUringChannel channel, ByteBuffer buffer, int bytesRead) {
+        channel.setReadPending(false);
         if (bytesRead < 0) {
-            socket.close();
+            channel.close();
             return;
         }
         buffer.limit(buffer.position() + bytesRead);
-        if (socket.readHandler() != null) {
-            socket.readHandler().accept(buffer);
+        if (channel.readHandler() != null) {
+            channel.readHandler().accept(buffer);
         }
     }
 
-    private void handleWriteCompletion(IoUringSocket socket, ByteBuffer buffer, int bytesWritten) {
-        socket.setWritePending(false);
+    private void handleWriteCompletion(AbstractIoUringChannel channel, ByteBuffer buffer, int bytesWritten) {
+        channel.setWritePending(false);
         if (bytesWritten < 0) {
-            socket.close();
+            channel.close();
             return;
         }
         int newPosition = buffer.position() + bytesWritten;
         buffer.position(newPosition);
         if (!buffer.hasRemaining()) {
-            if (socket.writeHandler() != null) {
-                socket.writeHandler().accept(buffer);
+            if (channel.writeHandler() != null) {
+                channel.writeHandler().accept(buffer);
             }
         } else {
-            socket.setWritePending(true);
-            queueWrite(socket, buffer);
+            channel.setWritePending(true);
+            queueWrite(channel, buffer);
         }
     }
 
@@ -178,35 +193,47 @@ public final class IoUring {
     }
 
     /**
+     * Queues a {@link IoUringServerSocket} for a connect operation on the next ring execution.
+     *
+     * @param socket the socket channel
+     * @return this instance
+     */
+    public IoUring queueConnect(IoUringSocket socket) {
+        fdToSocket.put(socket.fd(), socket);
+        IoUring.queueConnect(ring, socket.fd(), socket.ipAddress(), socket.port());
+        return this;
+    }
+
+    /**
      * Queues {@link IoUringSocket} for a read operation on the next ring execution.
      *
-     * @param socket the socket
+     * @param channel the channel
      * @param buffer the buffer to read into
      * @return this instance
      */
-    public IoUring queueRead(IoUringSocket socket, ByteBuffer buffer) {
+    public IoUring queueRead(AbstractIoUringChannel channel, ByteBuffer buffer) {
         if (!buffer.isDirect()) {
             throw new IllegalArgumentException("Buffer must be direct");
         }
-        long bufferAddress = IoUring.queueRead(ring, socket.fd(), buffer, buffer.position(), buffer.limit());
-        socket.readBufferMap().put(bufferAddress, buffer);
-        socket.setReadPending(true);
+        long bufferAddress = IoUring.queueRead(ring, channel.fd(), buffer, buffer.position(), buffer.limit());
+        channel.readBufferMap().put(bufferAddress, buffer);
+        channel.setReadPending(true);
         return this;
     }
 
     /**
      * Queues {@link IoUringSocket} for a write operation on the next ring execution.
      *
-     * @param socket the socket
+     * @param channel the channel
      * @return this instance
      */
-    public IoUring queueWrite(IoUringSocket socket, ByteBuffer buffer) {
+    public IoUring queueWrite(AbstractIoUringChannel channel, ByteBuffer buffer) {
         if (!buffer.isDirect()) {
             throw new IllegalArgumentException("Buffer must be direct");
         }
-        long bufferAddress = IoUring.queueWrite(ring, socket.fd(), buffer, buffer.position(), buffer.limit());
-        socket.writeBufferMap().put(bufferAddress, buffer);
-        socket.setWritePending(true);
+        long bufferAddress = IoUring.queueWrite(ring, channel.fd(), buffer, buffer.position(), buffer.limit());
+        channel.writeBufferMap().put(bufferAddress, buffer);
+        channel.setWritePending(true);
         return this;
     }
 
@@ -230,12 +257,12 @@ public final class IoUring {
     }
 
     /**
-     * Deregister this socket from the ring.
+     * Deregister this channel from the ring.
      *
-     * @param socket the socket
+     * @param channel the channel
      */
-    void deregister(IoUringSocket socket) {
-        fdToSocket.remove(socket.fd());
+    void deregister(AbstractIoUringChannel channel) {
+        fdToSocket.remove(channel.fd());
     }
 
     private static native long create(int maxEvents);
@@ -249,8 +276,9 @@ public final class IoUring {
     private static native String getCqeIpAddress(long cqes, long cqeIndex);
     private static native int markCqeSeen(long ring, long cqes, long cqeIndex);
     private static native int queueAccept(long ring, long serverSocketFd);
-    private static native long queueRead(long ring, long socketFd, ByteBuffer buffer, int bufferPos, int bufferLen);
-    private static native long queueWrite(long ring, long socketFd, ByteBuffer buffer, int bufferPos, int bufferLen);
+    private static native int queueConnect(long ring, long socketFd, String ipAddress, int port);
+    private static native long queueRead(long ring, long channelFd, ByteBuffer buffer, int bufferPos, int bufferLen);
+    private static native long queueWrite(long ring, long channelFd, ByteBuffer buffer, int bufferPos, int bufferLen);
 
     static {
         System.loadLibrary("nio_uring");
