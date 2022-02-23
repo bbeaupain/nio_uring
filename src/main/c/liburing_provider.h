@@ -45,6 +45,9 @@ Java_sh_blake_niouring_IoUring_queueRead(JNIEnv *env, jclass cls, jlong ring_add
 JNIEXPORT jlong JNICALL
 Java_sh_blake_niouring_IoUring_queueWrite(JNIEnv *env, jclass cls, jlong ring_address, jlong socket_fd, jobject byte_buffer, jint buffer_pos, jint buffer_len);
 
+JNIEXPORT void JNICALL
+Java_sh_blake_niouring_AbstractIoUringChannel_close(JNIEnv *env, jclass cls, jlong socket_fd);
+
 int throw_exception(JNIEnv *env, char *cause, int ret);
 int throw_out_of_memory_error(JNIEnv *env);
 

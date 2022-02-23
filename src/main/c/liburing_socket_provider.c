@@ -55,8 +55,3 @@ Java_sh_blake_niouring_IoUringServerSocket_bind(JNIEnv *env, jclass cls, jlong s
 
     return 0;
 }
-
-JNIEXPORT void JNICALL
-Java_sh_blake_niouring_AbstractIoUringChannel_close(JNIEnv *env, jclass cls, jlong socket_fd) {
-    close(socket_fd);
-}

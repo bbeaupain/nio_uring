@@ -2,12 +2,11 @@ package sh.blake.niouring.examples;
 
 import sh.blake.niouring.IoUring;
 import sh.blake.niouring.IoUringServerSocket;
-import sh.blake.niouring.IoUringSocket;
 import sh.blake.niouring.util.ByteBufferUtil;
 
 import java.nio.ByteBuffer;
 
-public class HttpHelloWorldTest {
+public class HttpHelloWorldServer {
     public static void main(String[] args) {
         String response = "HTTP/1.1 200 OK\r\n\r\nHello, world!";
         ByteBuffer responseBuffer = ByteBufferUtil.wrapDirect(response);
@@ -34,6 +33,6 @@ public class HttpHelloWorldTest {
         new IoUring()
             .onException(Exception::printStackTrace)
             .queueAccept(serverSocket) // queue an accept request, onAccept will be called when a socket connects
-            .loop();
+            .loop(); // process I/O events until interrupted
     }
 }

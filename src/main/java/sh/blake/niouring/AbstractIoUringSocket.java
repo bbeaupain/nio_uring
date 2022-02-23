@@ -1,7 +1,5 @@
 package sh.blake.niouring;
 
-import java.util.function.Consumer;
-
 public class AbstractIoUringSocket extends AbstractIoUringChannel {
     private final String ipAddress;
     private final int port;
