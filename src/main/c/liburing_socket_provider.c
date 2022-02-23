@@ -9,6 +9,7 @@
 #include <liburing.h>
 #include <unistd.h>
 #include <string.h>
+#include <stdint.h>
 
 JNIEXPORT jlong JNICALL
 Java_sh_blake_niouring_AbstractIoUringSocket_create(JNIEnv *env, jclass cls) {
@@ -29,7 +30,7 @@ Java_sh_blake_niouring_AbstractIoUringSocket_create(JNIEnv *env, jclass cls) {
         return throw_exception(env, "setsockopt", ret);
     }
 
-    return (long) fd;
+    return (uint64_t) fd;
 }
 
 JNIEXPORT jint JNICALL

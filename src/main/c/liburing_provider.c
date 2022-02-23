@@ -10,6 +10,7 @@
 #include <errno.h>
 #include <arpa/inet.h>
 #include <unistd.h>
+#include <stdint.h>
 
 #define EVENT_TYPE_ACCEPT   0
 #define EVENT_TYPE_READ     1
@@ -50,7 +51,7 @@ Java_sh_blake_niouring_IoUring_create(JNIEnv *env, jclass cls, jint maxEvents) {
         return throw_exception(env, "io_uring_queue_init", ret);
     }
 
-    return (long) ring;
+    return (uint64_t) ring;
 }
 
 JNIEXPORT jint JNICALL
@@ -74,7 +75,7 @@ Java_sh_blake_niouring_IoUring_submitAndGetCqes(JNIEnv *env, jclass cls, jlong r
         ret = 1;
     }
 
-    return ret;
+    return (int32_t) ret;
 }
 
 JNIEXPORT void JNICALL
@@ -88,7 +89,7 @@ Java_sh_blake_niouring_IoUring_getCqeEventType(JNIEnv *env, jclass cls, jlong cq
     struct io_uring_cqe **cqes = (struct io_uring_cqe **) cqes_address;
     struct io_uring_cqe *cqe = cqes[cqe_index];
     struct request *req = (struct request *) cqe->user_data;
-    return req->event_type;
+    return (int32_t) req->event_type;
 }
 
 JNIEXPORT jlong JNICALL
@@ -96,14 +97,14 @@ Java_sh_blake_niouring_IoUring_getCqeFd(JNIEnv *env, jclass cls, jlong cqes_addr
     struct io_uring_cqe **cqes = (struct io_uring_cqe **) cqes_address;
     struct io_uring_cqe *cqe = cqes[cqe_index];
     struct request *req = (struct request *) cqe->user_data;
-    return (long) req->fd;
+    return (uint64_t) req->fd;
 }
 
 JNIEXPORT jint JNICALL
 Java_sh_blake_niouring_IoUring_getCqeResult(JNIEnv *env, jclass cls, jlong cqes_address, jint cqe_index) {
     struct io_uring_cqe **cqes = (struct io_uring_cqe **) cqes_address;
     struct io_uring_cqe *cqe = cqes[cqe_index];
-    return cqe->res;
+    return (int32_t) cqe->res;
 }
 
 JNIEXPORT jlong JNICALL
@@ -111,7 +112,7 @@ Java_sh_blake_niouring_IoUring_getCqeBufferAddress(JNIEnv *env, jclass cls, jlon
     struct io_uring_cqe **cqes = (struct io_uring_cqe **) cqes_address;
     struct io_uring_cqe *cqe = cqes[cqe_index];
     struct request *req = (struct request *) cqe->user_data;
-    return (long) req->buffer_addr;
+    return (uint64_t) req->buffer_addr;
 }
 
 JNIEXPORT jstring JNICALL
@@ -214,7 +215,7 @@ Java_sh_blake_niouring_IoUring_queueRead(JNIEnv *env, jclass cls, jlong ring_add
     io_uring_prep_read(sqe, fd, buffer, buffer_len, 0);
     io_uring_sqe_set_data(sqe, req);
 
-    return (long) buffer;
+    return (uint64_t) buffer;
 }
 
 JNIEXPORT jlong JNICALL
@@ -245,7 +246,7 @@ Java_sh_blake_niouring_IoUring_queueWrite(JNIEnv *env, jclass cls, jlong ring_ad
     io_uring_prep_write(sqe, fd, buffer, buffer_len, 0);
     io_uring_sqe_set_data(sqe, req);
 
-    return (long) buffer;
+    return (uint64_t) buffer;
 }
 
 int throw_exception(JNIEnv *env, char *cause, int ret) {
