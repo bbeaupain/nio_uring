@@ -18,14 +18,14 @@
 #define EVENT_TYPE_CONNECT  3
 
 struct request {
-    int fd;
-    int event_type;
-    long buffer_addr;
+    int32_t fd;
+    int8_t event_type;
+    int64_t buffer_addr;
 };
 
 struct accept_request {
-    int fd;
-    int event_type;
+    int32_t fd;
+    int8_t event_type;
     struct sockaddr_in client_addr;
     socklen_t client_addr_len;
 };
@@ -46,7 +46,7 @@ Java_sh_blake_niouring_IoUring_create(JNIEnv *env, jclass cls, jint maxEvents) {
         return throw_out_of_memory_error(env);
     }
 
-    int ret = io_uring_queue_init(maxEvents, ring, 0);
+    int32_t ret = io_uring_queue_init(maxEvents, ring, 0);
     if (ret < 0) {
         return throw_exception(env, "io_uring_queue_init", ret);
     }
@@ -58,7 +58,7 @@ JNIEXPORT jint JNICALL
 Java_sh_blake_niouring_IoUring_submitAndGetCqes(JNIEnv *env, jclass cls, jlong ring_address, jlong cqes_address, jint cqes_size, jboolean should_wait) {
     struct io_uring *ring = (struct io_uring *) ring_address;
 
-    int ret = io_uring_submit(ring);
+    int32_t ret = io_uring_submit(ring);
     if (ret < 0) {
         if (ret != -EBUSY) {
             return throw_exception(env, "io_uring_submit", ret);
@@ -84,7 +84,7 @@ Java_sh_blake_niouring_IoUring_freeCqes(JNIEnv *env, jclass cls, jlong cqes_addr
     free(cqes);
 }
 
-JNIEXPORT jint JNICALL
+JNIEXPORT jbyte JNICALL
 Java_sh_blake_niouring_IoUring_getCqeEventType(JNIEnv *env, jclass cls, jlong cqes_address, jint cqe_index) {
     struct io_uring_cqe **cqes = (struct io_uring_cqe **) cqes_address;
     struct io_uring_cqe *cqe = cqes[cqe_index];
@@ -92,12 +92,12 @@ Java_sh_blake_niouring_IoUring_getCqeEventType(JNIEnv *env, jclass cls, jlong cq
     return (int32_t) req->event_type;
 }
 
-JNIEXPORT jlong JNICALL
+JNIEXPORT jint JNICALL
 Java_sh_blake_niouring_IoUring_getCqeFd(JNIEnv *env, jclass cls, jlong cqes_address, jint cqe_index) {
     struct io_uring_cqe **cqes = (struct io_uring_cqe **) cqes_address;
     struct io_uring_cqe *cqe = cqes[cqe_index];
     struct request *req = (struct request *) cqe->user_data;
-    return (uint64_t) req->fd;
+    return (int32_t) req->fd;
 }
 
 JNIEXPORT jint JNICALL
@@ -112,7 +112,7 @@ Java_sh_blake_niouring_IoUring_getCqeBufferAddress(JNIEnv *env, jclass cls, jlon
     struct io_uring_cqe **cqes = (struct io_uring_cqe **) cqes_address;
     struct io_uring_cqe *cqe = cqes[cqe_index];
     struct request *req = (struct request *) cqe->user_data;
-    return (uint64_t) req->buffer_addr;
+    return (int64_t) req->buffer_addr;
 }
 
 JNIEXPORT jstring JNICALL
@@ -135,13 +135,13 @@ Java_sh_blake_niouring_IoUring_markCqeSeen(JNIEnv *env, jclass cls, jlong ring_a
     io_uring_cqe_seen(ring, cqe);
 }
 
-JNIEXPORT jint JNICALL
-Java_sh_blake_niouring_IoUring_queueAccept(JNIEnv *env, jclass cls, jlong ring_address, jlong server_socket_fd) {
+JNIEXPORT void JNICALL
+Java_sh_blake_niouring_IoUring_queueAccept(JNIEnv *env, jclass cls, jlong ring_address, jint server_socket_fd) {
     struct io_uring *ring = (struct io_uring *) ring_address;
 
     struct io_uring_sqe *sqe = io_uring_get_sqe(ring);
     if (sqe == NULL) {
-        return throw_exception(env, "io_uring_get_sqe", -16);
+        return throw_exception(env, "io_uring_get_sqe", -EBUSY);
     }
 
     struct accept_request *req = malloc(sizeof(*req));
@@ -155,17 +155,15 @@ Java_sh_blake_niouring_IoUring_queueAccept(JNIEnv *env, jclass cls, jlong ring_a
 
     io_uring_prep_accept(sqe, server_socket_fd, (struct sockaddr *) &req->client_addr, &req->client_addr_len, 0);
     io_uring_sqe_set_data(sqe, req);
-
-    return 0;
 }
 
-JNIEXPORT jint JNICALL
-Java_sh_blake_niouring_IoUring_queueConnect(JNIEnv *env, jclass cls, jlong ring_address, jlong socket_fd, jstring ip_address, jint port) {
+JNIEXPORT void JNICALL
+Java_sh_blake_niouring_IoUring_queueConnect(JNIEnv *env, jclass cls, jlong ring_address, jint socket_fd, jstring ip_address, jint port) {
     struct io_uring *ring = (struct io_uring *) ring_address;
 
     struct io_uring_sqe *sqe = io_uring_get_sqe(ring);
     if (sqe == NULL) {
-        return throw_exception(env, "io_uring_get_sqe", -16);
+        return throw_exception(env, "io_uring_get_sqe", -EBUSY);
     }
 
     struct accept_request *req = malloc(sizeof(*req));
@@ -180,28 +178,27 @@ Java_sh_blake_niouring_IoUring_queueConnect(JNIEnv *env, jclass cls, jlong ring_
     req->client_addr_len = sizeof(req->client_addr);
     req->event_type = EVENT_TYPE_CONNECT;
     req->fd = socket_fd;
+    (*env)->ReleaseStringUTFChars(env, ip_address, ip);
 
     io_uring_prep_connect(sqe, socket_fd, (struct sockaddr *) &req->client_addr, req->client_addr_len);
     io_uring_sqe_set_data(sqe, req);
-
-    return 0;
 }
 
 JNIEXPORT jlong JNICALL
-Java_sh_blake_niouring_IoUring_queueRead(JNIEnv *env, jclass cls, jlong ring_address, jlong fd, jobject byte_buffer, jint buffer_pos, jint buffer_len) {
+Java_sh_blake_niouring_IoUring_queueRead(JNIEnv *env, jclass cls, jlong ring_address, jint fd, jobject byte_buffer, jint buffer_pos, jint buffer_len) {
     void *buffer = (*env)->GetDirectBufferAddress(env, byte_buffer);
     if (buffer == NULL) {
-        return throw_exception(env, "invalid byte buffer (read)", -16);
+        return throw_exception(env, "invalid byte buffer (read)", -EINVAL);
     }
 
     struct io_uring *ring = (struct io_uring *) ring_address;
     if (io_uring_sq_space_left(ring) <= 1) {
-        return throw_exception(env, "io_uring_sq_space_left", -16);
+        return throw_exception(env, "io_uring_sq_space_left", -EBUSY);
     }
 
     struct io_uring_sqe *sqe = io_uring_get_sqe(ring);
     if (sqe == NULL) {
-        return throw_exception(env, "io_uring_get_sqe", -16);
+        return throw_exception(env, "io_uring_get_sqe", -EBUSY);
     }
 
     struct request *req = malloc(sizeof(*req));
@@ -219,20 +216,20 @@ Java_sh_blake_niouring_IoUring_queueRead(JNIEnv *env, jclass cls, jlong ring_add
 }
 
 JNIEXPORT jlong JNICALL
-Java_sh_blake_niouring_IoUring_queueWrite(JNIEnv *env, jclass cls, jlong ring_address, jlong fd, jobject byte_buffer, jint buffer_pos, jint buffer_len) {
+Java_sh_blake_niouring_IoUring_queueWrite(JNIEnv *env, jclass cls, jlong ring_address, jint fd, jobject byte_buffer, jint buffer_pos, jint buffer_len) {
     void *buffer = (*env)->GetDirectBufferAddress(env, byte_buffer);
     if (buffer == NULL) {
-        return throw_exception(env, "invalid byte buffer (write)", -16);
+        return throw_exception(env, "invalid byte buffer (write)", -EINVAL);
     }
 
     struct io_uring *ring = (struct io_uring *) ring_address;
     if (io_uring_sq_space_left(ring) <= 1) {
-        return throw_exception(env, "io_uring_sq_space_left", -16);
+        return throw_exception(env, "io_uring_sq_space_left", -EBUSY);
     }
 
     struct io_uring_sqe *sqe = io_uring_get_sqe(ring);
     if (sqe == NULL) {
-        return throw_exception(env, "io_uring_get_sqe", -16);
+        return throw_exception(env, "io_uring_get_sqe", -EBUSY);
     }
 
     struct request *req = malloc(sizeof(*req));
@@ -250,16 +247,16 @@ Java_sh_blake_niouring_IoUring_queueWrite(JNIEnv *env, jclass cls, jlong ring_ad
 }
 
 JNIEXPORT void JNICALL
-Java_sh_blake_niouring_AbstractIoUringChannel_close(JNIEnv *env, jclass cls, jlong fd) {
+Java_sh_blake_niouring_AbstractIoUringChannel_close(JNIEnv *env, jclass cls, jint fd) {
     close(fd);
 }
 
-int throw_exception(JNIEnv *env, char *cause, int ret) {
+int32_t throw_exception(JNIEnv *env, char *cause, int32_t ret) {
     char error_msg[1024];
     snprintf(error_msg, sizeof(error_msg), "%s - %s", cause, strerror(-ret));
     return (*env)->ThrowNew(env, (*env)->FindClass(env, "java/lang/RuntimeException"), &error_msg);
 }
 
-int throw_out_of_memory_error(JNIEnv *env) {
+int32_t throw_out_of_memory_error(JNIEnv *env) {
     return (*env)->ThrowNew(env, (*env)->FindClass(env, "java/lang/OutOfMemoryError"), "Out of heap space");
 }

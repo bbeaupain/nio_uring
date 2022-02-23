@@ -12,7 +12,7 @@ public final class IoUringSocket extends AbstractIoUringSocket {
         super(AbstractIoUringSocket.create(), ipAddress, port);
     }
 
-    IoUringSocket(long fd, String ipAddress, int port) {
+    IoUringSocket(int fd, String ipAddress, int port) {
         super(fd, ipAddress, port);
     }
 

@@ -19,7 +19,7 @@ public final class IoUring {
 
     private final long ring;
     private final int ringSize;
-    private final Map<Long, AbstractIoUringChannel> fdToSocket = new HashMap<>();
+    private final Map<Integer, AbstractIoUringChannel> fdToSocket = new HashMap<>();
     private Consumer<Exception> exceptionHandler;
 
     /**
@@ -87,7 +87,7 @@ public final class IoUring {
     }
 
     private void handleEventCompletion(long cqes, int i) {
-        long fd = IoUring.getCqeFd(cqes, i);
+        int fd = IoUring.getCqeFd(cqes, i);
         int eventType = IoUring.getCqeEventType(cqes, i);
         if (eventType == EVENT_TYPE_ACCEPT) {
             int result = IoUring.getCqeResult(cqes, i);
@@ -138,7 +138,7 @@ public final class IoUring {
         }
     }
 
-    private void handleAcceptCompletion(IoUringServerSocket serverSocket, long channelFd, String ipAddress) {
+    private void handleAcceptCompletion(IoUringServerSocket serverSocket, int channelFd, String ipAddress) {
         if (channelFd < 0) {
             return;
         }
@@ -265,16 +265,16 @@ public final class IoUring {
     private static native long createCqes(int count);
     private static native void freeCqes(long cqes);
     private static native int submitAndGetCqes(long ring, long cqes, int cqesSize, boolean shouldWait);
-    private static native int getCqeEventType(long cqes, long cqeIndex);
-    private static native long getCqeFd(long cqes, long cqeIndex);
-    private static native int getCqeResult(long cqes, long cqeIndex);
-    private static native long getCqeBufferAddress(long cqes, long cqeIndex);
-    private static native String getCqeIpAddress(long cqes, long cqeIndex);
-    private static native int markCqeSeen(long ring, long cqes, long cqeIndex);
-    private static native int queueAccept(long ring, long serverSocketFd);
-    private static native int queueConnect(long ring, long socketFd, String ipAddress, int port);
-    private static native long queueRead(long ring, long channelFd, ByteBuffer buffer, int bufferPos, int bufferLen);
-    private static native long queueWrite(long ring, long channelFd, ByteBuffer buffer, int bufferPos, int bufferLen);
+    private static native byte getCqeEventType(long cqes, int cqeIndex);
+    private static native int getCqeFd(long cqes, int cqeIndex);
+    private static native int getCqeResult(long cqes, int cqeIndex);
+    private static native long getCqeBufferAddress(long cqes, int cqeIndex);
+    private static native String getCqeIpAddress(long cqes, int cqeIndex);
+    private static native int markCqeSeen(long ring, long cqes, int cqeIndex);
+    private static native void queueAccept(long ring, int serverSocketFd);
+    private static native void queueConnect(long ring, int socketFd, String ipAddress, int port);
+    private static native long queueRead(long ring, int channelFd, ByteBuffer buffer, int bufferPos, int bufferLen);
+    private static native long queueWrite(long ring, int channelFd, ByteBuffer buffer, int bufferPos, int bufferLen);
 
     static {
         System.loadLibrary("nio_uring");

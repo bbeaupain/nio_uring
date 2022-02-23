@@ -11,7 +11,7 @@ public class IoUringFile extends AbstractIoUringChannel {
         super(IoUringFile.open(path));
     }
 
-    private static native long open(String path);
+    private static native int open(String path);
 
     static {
         System.loadLibrary("nio_uring");

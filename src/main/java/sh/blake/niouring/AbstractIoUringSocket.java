@@ -4,7 +4,7 @@ public class AbstractIoUringSocket extends AbstractIoUringChannel {
     private final String ipAddress;
     private final int port;
 
-    public AbstractIoUringSocket(long fd, String ipAddress, int port) {
+    public AbstractIoUringSocket(int fd, String ipAddress, int port) {
         super(fd);
         this.ipAddress = ipAddress;
         this.port = port;
@@ -18,5 +18,5 @@ public class AbstractIoUringSocket extends AbstractIoUringChannel {
         return port;
     }
 
-    static native long create();
+    static native int create();
 }

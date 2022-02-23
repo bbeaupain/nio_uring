@@ -62,7 +62,7 @@ public final class IoUringServerSocket extends AbstractIoUringSocket {
         return port;
     }
 
-    private static native int bind(long fd, String host, int port, int backlog);
+    private static native void bind(long fd, String host, int port, int backlog);
 
     static {
         System.loadLibrary("nio_uring");

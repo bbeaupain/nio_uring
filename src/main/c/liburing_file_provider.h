@@ -3,9 +3,7 @@
 
 #include <jni.h>
 
-JNIEXPORT jlong JNICALL
+JNIEXPORT jint JNICALL
 Java_sh_blake_niouring_IoUringFile_open(JNIEnv *env, jclass cls, jstring path);
-
-int throw_exception(JNIEnv *env, char *cause, int ret);
 
 #endif

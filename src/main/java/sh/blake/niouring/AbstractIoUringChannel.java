@@ -9,7 +9,7 @@ import java.util.function.Consumer;
  * The type {@code AbstractIoUringSocket}.
  */
 public abstract class AbstractIoUringChannel {
-    private final long fd;
+    private final int fd;
     private final Map<Long, ByteBuffer> readBufferMap = new HashMap<>();
     private final Map<Long, ByteBuffer> writeBufferMap = new HashMap<>();
     private boolean closed = false;
@@ -23,7 +23,7 @@ public abstract class AbstractIoUringChannel {
      *
      * @param fd the fd
      */
-    AbstractIoUringChannel(long fd) {
+    AbstractIoUringChannel(int fd) {
         this.fd = fd;
     }
 
@@ -46,7 +46,7 @@ public abstract class AbstractIoUringChannel {
      *
      * @return the long
      */
-    long fd() {
+    int fd() {
         return fd;
     }
 
@@ -162,5 +162,5 @@ public abstract class AbstractIoUringChannel {
         return !closed;
     }
 
-    public static native void close(long fd);
+    public static native void close(int fd);
 }
