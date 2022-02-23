@@ -125,7 +125,7 @@ public final class IoUring {
                     channel.exceptionHandler().accept(ex);
                 }
             } finally {
-                if (channel.isClosed()) {
+                if (channel.isClosed() && fdToSocket.get(fd).equals(channel)) {
                     deregister(channel);
                 }
             }
@@ -211,6 +211,7 @@ public final class IoUring {
         if (!buffer.isDirect()) {
             throw new IllegalArgumentException("Buffer must be direct");
         }
+        fdToSocket.put(channel.fd(), channel);
         long bufferAddress = IoUring.queueRead(ring, channel.fd(), buffer, buffer.position(), buffer.limit());
         channel.readBufferMap().put(bufferAddress, buffer);
         return this;
@@ -226,6 +227,7 @@ public final class IoUring {
         if (!buffer.isDirect()) {
             throw new IllegalArgumentException("Buffer must be direct");
         }
+        fdToSocket.put(channel.fd(), channel);
         long bufferAddress = IoUring.queueWrite(ring, channel.fd(), buffer, buffer.position(), buffer.limit());
         channel.writeBufferMap().put(bufferAddress, buffer);
         return this;

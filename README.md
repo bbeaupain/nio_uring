@@ -17,9 +17,13 @@ Feedback, suggestions, and contributions are most welcome!
 
 For both of these, the higher the version the better - free performance!
 
-## Example
+## Maven Usage
 
-Here's a super basic HTTP server from `sh.blake.niouring.examples.HttpHelloWorldTest`. There are a few other examples in the same package too.
+Is on the way!
+
+## TCP Server Example
+
+Here's a basic HTTP server from `sh.blake.niouring.examples.HttpHelloWorldServer`. There are a few other examples in the same package.
 
 ```java
 public static void main(String[] args) {
@@ -48,23 +52,33 @@ public static void main(String[] args) {
     new IoUring()
         .onException(Exception::printStackTrace)
         .queueAccept(serverSocket) // queue an accept request, onAccept will be called when a socket connects
-        .loop();
+        .loop(); // process I/O events until interrupted
 }
 ```
 
-## Maven Usage
+## File Support
 
-Is on the way!
+A barebones `cat` implementation from `sh.blake.niouring.examples.CatExample`:
+```java
+public static void main(String[] args) {
+    IoUringFile file = new IoUringFile(args[0]);
+    file.onRead(in -> {
+        System.out.println(StandardCharsets.UTF_8.decode(in));
+        file.close();
+    });
+    new IoUring()
+        .queueRead(file, ByteBuffer.allocateDirect(8192))
+        .execute(); // process at least one I/O event (blocking until complete)
+}
+```
+
+There's also an example HTTP server that will respond with this README in the examples package!
 
 ## Performance Tuning
 
 Pretty much all performance tuning is done with one knob - the `ringSize` argument to the `IoUring` constructor, which has a default value of 512 if not provided. This value controls the number of outstanding I/O events (accepts, reads, and writes) at any given time. It is constrained by `memlock` limits (`ulimit -l`) which can be increased as necessary. Don't forget about file descriptor limits (`ulimit -n`) too!
 
-Beyond this, you will have to run multiple rings across multiple threads. See `sh.blake.niouring.examples.ParallelHttpEchoTest` for a simple starter using `java.util.concurrent` APIs.
-
-## File Support
-
-Is on the way and will provide zero-copy operations with sockets!
+Beyond this, you will have to run multiple rings across multiple threads. See `sh.blake.niouring.examples.ParallelHttpEchoServer` for a simple starter using `java.util.concurrent` APIs.
 
 ## Caveats / Warnings
 
@@ -81,7 +95,7 @@ As of now, you should only call read/write/close operations from an `IoUring` ha
 All `ByteBuffer` instances used with this library must be direct (e.g. allocated with `allocateDirect`). This is a hard requirement and is what enables zero-copy functionality.
 
 ### Multiple reads/writes
-Queuing multiple operations is fine, but try not to queue a read/write operation for _the same_ buffer to the _same_ socket more than once per ring execution, because the internal mapping system is not designed to handle this. The data will be read/written, but order is not guaranteed, and an `java.lang.IllegalStateException` exception with message "Buffer already removed" will be thrown.
+Queuing multiple operations is fine, but try not to queue a read/write operation for _the same_ buffer to the _same_ socket more than once per ring execution, because the internal mapping system is not designed to handle this. The data will be read/written, but your handler will only be called for the first operation, and an `java.lang.IllegalStateException` exception with message "Buffer already removed" will be sent to the exception handler for the second.
 
 ## Building
 

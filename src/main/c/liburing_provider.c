@@ -249,6 +249,11 @@ Java_sh_blake_niouring_IoUring_queueWrite(JNIEnv *env, jclass cls, jlong ring_ad
     return (uint64_t) buffer;
 }
 
+JNIEXPORT void JNICALL
+Java_sh_blake_niouring_AbstractIoUringChannel_close(JNIEnv *env, jclass cls, jlong fd) {
+    close(fd);
+}
+
 int throw_exception(JNIEnv *env, char *cause, int ret) {
     char error_msg[1024];
     snprintf(error_msg, sizeof(error_msg), "%s - %s", cause, strerror(-ret));
