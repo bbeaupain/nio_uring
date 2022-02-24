@@ -1,12 +1,12 @@
 plugins {
-    id 'application'
     id 'java'
     id 'c'
     id 'jacoco'
+    id 'maven'
 }
 
 group 'sh.blake.niouring'
-version '1.0-SNAPSHOT'
+version '0.1.0'
 
 sourceCompatibility = 1.8
 
@@ -18,11 +18,6 @@ dependencies {
     testCompile group: 'junit', name: 'junit', version: '4.12'
 }
 
-application {
-    mainClassName = "sh.blake.niouring.examples.TcpReverseProxyExample"
-    applicationDefaultJvmArgs = ["-Djava.library.path=build/libs/nio_uring/shared", "-Dcom.sun.management.jmxremote"]
-}
-
 test {
     testLogging.showStandardStreams = true
     systemProperty "java.library.path", file("${buildDir}/libs/nio_uring/shared").absolutePath
@@ -32,11 +27,15 @@ jacoco {
     toolVersion = "0.8.2"
 }
 
+processResources {
+    from "${buildDir}/libs/nio_uring/shared/"
+}
+
 model {
     binaries {
         all {
             if (toolChain in Gcc) {
-                cCompiler.args "-Wall", "-g", "-O2"
+                cCompiler.args "-O2"
             }
         }
     }
@@ -85,3 +84,4 @@ model {
 
 build.dependsOn("nio_uringSharedLibrary")
 test.dependsOn("nio_uringSharedLibrary")
+processResources.dependsOn("nio_uringSharedLibrary")

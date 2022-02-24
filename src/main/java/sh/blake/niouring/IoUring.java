@@ -1,7 +1,10 @@
 package sh.blake.niouring;
 
+import sh.blake.niouring.util.NativeLibraryLoader;
 import sh.blake.niouring.util.OsVersionCheck;
 
+import java.io.IOException;
+import java.net.URISyntaxException;
 import java.nio.ByteBuffer;
 import java.util.HashMap;
 import java.util.Map;
@@ -247,6 +250,11 @@ public final class IoUring {
     private static native long queueWrite(long ring, int channelFd, ByteBuffer buffer, int bufferPos, int bufferLen);
 
     static {
-        System.loadLibrary("nio_uring");
+        try {
+            NativeLibraryLoader.load("/libnio_uring.so");
+        } catch (IOException | URISyntaxException ex) {
+            ex.printStackTrace();
+            System.loadLibrary("nio_uring");
+        }
     }
 }

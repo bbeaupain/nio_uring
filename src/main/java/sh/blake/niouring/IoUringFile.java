@@ -1,5 +1,10 @@
 package sh.blake.niouring;
 
+import sh.blake.niouring.util.NativeLibraryLoader;
+
+import java.io.IOException;
+import java.net.URISyntaxException;
+
 /**
  * An {@link AbstractIoUringChannel} implementation for file operations.
  */
@@ -17,6 +22,11 @@ public class IoUringFile extends AbstractIoUringChannel {
     private static native int open(String path);
 
     static {
-        System.loadLibrary("nio_uring");
+        try {
+            NativeLibraryLoader.load("/libnio_uring.so");
+        } catch (IOException | URISyntaxException ex) {
+            ex.printStackTrace();
+            System.loadLibrary("nio_uring");
+        }
     }
 }
