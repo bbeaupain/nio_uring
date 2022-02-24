@@ -215,7 +215,7 @@ Java_sh_blake_niouring_IoUring_queueRead(JNIEnv *env, jclass cls, jlong ring_add
     req->buffer_addr = buffer;
     req->fd = fd;
 
-    io_uring_prep_read(sqe, fd, buffer, buffer_len, 0);
+    io_uring_prep_read(sqe, fd, buffer + buffer_pos, buffer_len, 0);
     io_uring_sqe_set_data(sqe, req);
 
     return (uint64_t) buffer;
@@ -246,7 +246,7 @@ Java_sh_blake_niouring_IoUring_queueWrite(JNIEnv *env, jclass cls, jlong ring_ad
     req->buffer_addr = buffer;
     req->fd = fd;
 
-    io_uring_prep_write(sqe, fd, buffer, buffer_len, 0);
+    io_uring_prep_write(sqe, fd, buffer + buffer_pos, buffer_len, 0);
     io_uring_sqe_set_data(sqe, req);
 
     return (uint64_t) buffer;
