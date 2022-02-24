@@ -3,6 +3,7 @@ plugins {
     id 'c'
     id 'jacoco'
     id 'maven'
+    id 'signing'
 }
 
 group 'sh.blake.niouring'
@@ -31,39 +32,45 @@ processResources {
     from "${buildDir}/libs/nio_uring/shared/"
 }
 
-task writeNewPom << {
-    pom {
-        project {
-            name = "nio_uring"
-            description = "I/O library for Java using io_uring under the hood"
-            url = "https://github.com/bbeaupain/nio_uring"
-            inceptionYear = "2022"
-            packaging = "jar"
-
-            licenses {
-                license {
-                    name = "The MIT License"
-                    url = "https://opensource.org/licenses/MIT"
-                    distribution = "repo"
-                }
+uploadArchives {
+    repositories {
+        mavenDeployer {
+            beforeDeployment { MavenDeployment deployment -> signing.signPom(deployment) }
+            repository(url: "https://s01.oss.sonatype.org/service/local/staging/deploy/maven2/") {
+                authentication(userName: ossrhUsername, password: ossrhPassword)
             }
-
-            developers {
-                developer {
-                    name = "Blake Beaupain"
-                    email = "me@blake.sh"
-                    organization = "Blake Beaupain"
-                    organizationUrl = "https://www.blake.sh"
-                }
+            snapshotRepository(url: "https://s01.oss.sonatype.org/content/repositories/snapshots/") {
+                authentication(userName: ossrhUsername, password: ossrhPassword)
             }
-
-            scm {
-                connection = "scm:git:git://github.com/bbeaupain/nio_uring.git"
-                developerConnection = "scm:git:git://github.com/bbeaupain/nio_uring.git"
+            pom.project {
+                name = "nio_uring"
+                description = "I/O library for Java using io_uring under the hood"
                 url = "https://github.com/bbeaupain/nio_uring"
+                inceptionYear = "2022"
+                packaging = "jar"
+                licenses {
+                    license {
+                        name = "The MIT License"
+                        url = "https://opensource.org/licenses/MIT"
+                        distribution = "repo"
+                    }
+                }
+                developers {
+                    developer {
+                        name = "Blake Beaupain"
+                        email = "me@blake.sh"
+                        organization = "Blake Beaupain"
+                        organizationUrl = "https://www.blake.sh"
+                    }
+                }
+                scm {
+                    connection = "scm:git:git://github.com/bbeaupain/nio_uring.git"
+                    developerConnection = "scm:git:git://github.com/bbeaupain/nio_uring.git"
+                    url = "https://github.com/bbeaupain/nio_uring"
+                }
             }
         }
-    }.writeTo("pom.xml")
+    }
 }
 
 task sourcesJar(type: Jar, dependsOn: classes) {
@@ -79,6 +86,10 @@ task javadocJar(type: Jar, dependsOn: javadoc) {
 artifacts {
     archives sourcesJar
     archives javadocJar
+}
+
+signing {
+    sign configurations.archives
 }
 
 model {
