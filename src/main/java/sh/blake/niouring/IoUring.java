@@ -40,6 +40,10 @@ public final class IoUring {
         this.ring = IoUring.create(ringSize);
     }
 
+    public void close() {
+        IoUring.close(ring);
+    }
+
     /**
      * Takes over the current thread with a loop calling {@code execute()}, until interrupted.
      */
@@ -89,11 +93,14 @@ public final class IoUring {
     private void handleEventCompletion(long cqes, int i) {
         int fd = IoUring.getCqeFd(cqes, i);
         int eventType = IoUring.getCqeEventType(cqes, i);
+        int result = IoUring.getCqeResult(cqes, i);
         if (eventType == EVENT_TYPE_ACCEPT) {
-            int result = IoUring.getCqeResult(cqes, i);
             IoUringServerSocket serverSocket = (IoUringServerSocket) fdToSocket.get(fd);
             String ipAddress = IoUring.getCqeIpAddress(cqes, i);
-            handleAcceptCompletion(serverSocket, result, ipAddress);
+            IoUringSocket socket = serverSocket.handleAcceptCompletion(this, serverSocket, result, ipAddress);
+            if (socket != null) {
+                fdToSocket.put(socket.fd(), socket);
+            }
         } else {
             AbstractIoUringChannel channel = fdToSocket.get(fd);
             if (channel == null || channel.isClosed()) {
@@ -102,76 +109,31 @@ public final class IoUring {
             long bufferAddress = IoUring.getCqeBufferAddress(cqes, i);
             try {
                 if (eventType == EVENT_TYPE_CONNECT) {
-                    handleConnectCompletion((IoUringSocket) channel);
+                    ((IoUringSocket) channel).handleConnectCompletion(this, result);
                 } else if (eventType == EVENT_TYPE_READ) {
-                    int result = IoUring.getCqeResult(cqes, i);
                     ByteBuffer buffer = channel.readBufferMap().get(bufferAddress);
                     if (buffer == null) {
                         throw new IllegalStateException("Buffer already removed");
                     }
                     channel.readBufferMap().remove(bufferAddress);
-                    handleReadCompletion(channel, buffer, result);
+                    channel.handleReadCompletion(channel, buffer, result);
                 } else if (eventType == EVENT_TYPE_WRITE) {
-                    int result = IoUring.getCqeResult(cqes, i);
                     ByteBuffer buffer = channel.writeBufferMap().get(bufferAddress);
                     if (buffer == null) {
                         throw new IllegalStateException("Buffer already removed");
                     }
                     channel.writeBufferMap().remove(bufferAddress);
-                    handleWriteCompletion(channel, buffer, result);
+                    channel.handleWriteCompletion(channel, buffer, result);
                 }
-            } catch (RuntimeException ex) {
+            } catch (Exception ex) {
                 if (channel.exceptionHandler() != null) {
                     channel.exceptionHandler().accept(ex);
                 }
             } finally {
-                if (channel.isClosed() && fdToSocket.get(fd).equals(channel)) {
+                if (channel.isClosed() && channel.equals(fdToSocket.get(fd))) {
                     deregister(channel);
                 }
             }
-        }
-    }
-
-    private void handleConnectCompletion(IoUringSocket socket) {
-        if (socket.connectHandler() != null) {
-            socket.connectHandler().accept(this);
-        }
-    }
-
-    private void handleAcceptCompletion(IoUringServerSocket serverSocket, int channelFd, String ipAddress) {
-        if (channelFd < 0) {
-            return;
-        }
-        IoUringSocket channel = new IoUringSocket(channelFd, ipAddress, serverSocket.getPort());
-        fdToSocket.put(channel.fd(), channel);
-        if (serverSocket.acceptHandler() != null) {
-            serverSocket.acceptHandler().accept(this, channel);
-        }
-    }
-
-    private void handleReadCompletion(AbstractIoUringChannel channel, ByteBuffer buffer, int bytesRead) {
-        if (bytesRead < 0) {
-            channel.close();
-            return;
-        }
-        buffer.position(buffer.position() + bytesRead);
-        if (channel.readHandler() != null) {
-            channel.readHandler().accept(buffer);
-        }
-    }
-
-    private void handleWriteCompletion(AbstractIoUringChannel channel, ByteBuffer buffer, int bytesWritten) {
-        if (bytesWritten < 0) {
-            channel.close();
-            return;
-        }
-        buffer.position(buffer.position() + bytesWritten);
-        if (!buffer.hasRemaining()) {
-            if (channel.writeHandler() != null) {
-                channel.writeHandler().accept(buffer);
-            }
-        } else {
-            queueWrite(channel, buffer);
         }
     }
 
@@ -261,6 +223,7 @@ public final class IoUring {
     }
 
     private static native long create(int maxEvents);
+    private static native void close(long ring);
     private static native long createCqes(int count);
     private static native void freeCqes(long cqes);
     private static native int submitAndGetCqes(long ring, long cqes, int cqesSize, boolean shouldWait);

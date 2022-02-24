@@ -27,6 +27,29 @@ public abstract class AbstractIoUringChannel {
         this.fd = fd;
     }
 
+
+    protected void handleReadCompletion(AbstractIoUringChannel channel, ByteBuffer buffer, int bytesRead) {
+        if (bytesRead < 0) {
+            channel.close();
+            return;
+        }
+        buffer.position(buffer.position() + bytesRead);
+        if (channel.readHandler() != null) {
+            channel.readHandler().accept(buffer);
+        }
+    }
+
+    protected void handleWriteCompletion(AbstractIoUringChannel channel, ByteBuffer buffer, int bytesWritten) {
+        if (bytesWritten < 0) {
+            channel.close();
+            return;
+        }
+        buffer.position(buffer.position() + bytesWritten);
+        if (channel.writeHandler() != null) {
+            channel.writeHandler().accept(buffer);
+        }
+    }
+
     /**
      * Closes the socket.
      */
@@ -162,5 +185,9 @@ public abstract class AbstractIoUringChannel {
         return !closed;
     }
 
-    public static native void close(int fd);
+    private static native void close(int fd);
+
+    static {
+        System.loadLibrary("nio_uring");
+    }
 }

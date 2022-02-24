@@ -13,6 +13,9 @@ Java_sh_blake_niouring_IoUring_freeCqes(JNIEnv *env, jclass cls, jlong cqes_addr
 JNIEXPORT jlong JNICALL
 Java_sh_blake_niouring_IoUring_create(JNIEnv *env, jclass cls, jint maxEvents);
 
+JNIEXPORT void JNICALL
+Java_sh_blake_niouring_IoUring_close(JNIEnv *env, jclass cls, jlong ring_address);
+
 JNIEXPORT jint JNICALL
 Java_sh_blake_niouring_IoUring_submitAndGetCqes(JNIEnv *env, jclass cls, jlong ring_address, jlong cqes_address, jint cqes_size, jboolean should_wait);
 

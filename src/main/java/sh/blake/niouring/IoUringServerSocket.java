@@ -1,6 +1,8 @@
 package sh.blake.niouring;
 
+import java.nio.ByteBuffer;
 import java.util.function.BiConsumer;
+import java.util.function.Consumer;
 
 /**
  * A {@code ServerSocket} analog for working with an {@code io_uring}.
@@ -9,8 +11,6 @@ public final class IoUringServerSocket extends AbstractIoUringSocket {
     private static final int DEFAULT_BACKLOG = 65535;
 
     private BiConsumer<IoUring, IoUringSocket> acceptHandler;
-    private String address;
-    private int port;
 
     /**
      * Instantiates a new {@code IoUringServerSocket}.
@@ -34,6 +34,27 @@ public final class IoUringServerSocket extends AbstractIoUringSocket {
         this("127.0.0.1", port, DEFAULT_BACKLOG);
     }
 
+    protected IoUringSocket handleAcceptCompletion(IoUring ioUring, IoUringServerSocket serverSocket, int channelFd, String ipAddress) {
+        if (channelFd < 0) {
+            return null;
+        }
+        IoUringSocket channel = new IoUringSocket(channelFd, ipAddress, serverSocket.port());
+        if (serverSocket.acceptHandler() != null) {
+            serverSocket.acceptHandler().accept(ioUring, channel);
+        }
+        return channel;
+    }
+
+    @Override
+    public IoUringServerSocket onRead(Consumer<ByteBuffer> buffer) {
+        throw new UnsupportedOperationException("Server socket cannot read");
+    }
+
+    @Override
+    public IoUringServerSocket onWrite(Consumer<ByteBuffer> buffer) {
+        throw new UnsupportedOperationException("Server socket cannot write");
+    }
+
     /**
      * Gets the accept handler.
      *
@@ -52,14 +73,6 @@ public final class IoUringServerSocket extends AbstractIoUringSocket {
     public IoUringServerSocket onAccept(BiConsumer<IoUring, IoUringSocket> acceptHandler) {
         this.acceptHandler = acceptHandler;
         return this;
-    }
-
-    public String getAddress() {
-        return address;
-    }
-
-    public int getPort() {
-        return port;
     }
 
     private static native void bind(long fd, String host, int port, int backlog);

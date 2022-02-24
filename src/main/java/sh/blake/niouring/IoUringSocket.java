@@ -1,5 +1,6 @@
 package sh.blake.niouring;
 
+import java.nio.ByteBuffer;
 import java.util.function.Consumer;
 
 /**
@@ -14,6 +15,16 @@ public final class IoUringSocket extends AbstractIoUringSocket {
 
     IoUringSocket(int fd, String ipAddress, int port) {
         super(fd, ipAddress, port);
+    }
+
+    protected void handleConnectCompletion(IoUring ioUring, int result) {
+        if (result != 0) {
+            // TODO: better error messages, users don't have access to errno
+            throw new RuntimeException("Connection result was: " + result);
+        }
+        if (connectHandler != null) {
+            connectHandler.accept(ioUring);
+        }
     }
 
     Consumer<IoUring> connectHandler() {

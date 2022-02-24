@@ -19,4 +19,8 @@ public class AbstractIoUringSocket extends AbstractIoUringChannel {
     }
 
     static native int create();
+
+    static {
+        System.loadLibrary("nio_uring");
+    }
 }

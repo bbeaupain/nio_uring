@@ -54,6 +54,12 @@ Java_sh_blake_niouring_IoUring_create(JNIEnv *env, jclass cls, jint maxEvents) {
     return (uint64_t) ring;
 }
 
+JNIEXPORT void JNICALL
+Java_sh_blake_niouring_IoUring_close(JNIEnv *env, jclass cls, jlong ring_address) {
+    struct io_uring *ring = (struct io_uring *) ring_address;
+    io_uring_queue_exit(ring);
+}
+
 JNIEXPORT jint JNICALL
 Java_sh_blake_niouring_IoUring_submitAndGetCqes(JNIEnv *env, jclass cls, jlong ring_address, jlong cqes_address, jint cqes_size, jboolean should_wait) {
     struct io_uring *ring = (struct io_uring *) ring_address;
