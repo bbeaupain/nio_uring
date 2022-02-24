@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd" xmlns="http://maven.apache.org/POM/4.0.0"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+  <modelVersion>4.0.0</modelVersion>
+  <groupId>sh.blake.niouring</groupId>
+  <artifactId>nio_uring</artifactId>
+  <version>0.1.0</version>
+  <name>nio_uring</name>
+  <description>I/O library for Java using io_uring under the hood</description>
+  <url>https://github.com/bbeaupain/nio_uring</url>
+  <inceptionYear>2022</inceptionYear>
+  <licenses>
+    <license>
+      <name>The MIT License</name>
+      <url>https://opensource.org/licenses/MIT</url>
+      <distribution>repo</distribution>
+    </license>
+  </licenses>
+  <developers>
+    <developer>
+      <name>Blake Beaupain</name>
+      <email>me@blake.sh</email>
+      <organization>Blake Beaupain</organization>
+      <organizationUrl>https://www.blake.sh</organizationUrl>
+    </developer>
+  </developers>
+  <scm>
+    <connection>scm:git:git://github.com/bbeaupain/nio_uring.git</connection>
+    <developerConnection>scm:git:git://github.com/bbeaupain/nio_uring.git</developerConnection>
+    <url>https://github.com/bbeaupain/nio_uring</url>
+  </scm>
+  <dependencies>
+    <dependency>
+      <groupId>junit</groupId>
+      <artifactId>junit</artifactId>
+      <version>4.12</version>
+      <scope>test</scope>
+    </dependency>
+  </dependencies>
+</project>

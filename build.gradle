@@ -31,6 +31,56 @@ processResources {
     from "${buildDir}/libs/nio_uring/shared/"
 }
 
+task writeNewPom << {
+    pom {
+        project {
+            name = "nio_uring"
+            description = "I/O library for Java using io_uring under the hood"
+            url = "https://github.com/bbeaupain/nio_uring"
+            inceptionYear = "2022"
+            packaging = "jar"
+
+            licenses {
+                license {
+                    name = "The MIT License"
+                    url = "https://opensource.org/licenses/MIT"
+                    distribution = "repo"
+                }
+            }
+
+            developers {
+                developer {
+                    name = "Blake Beaupain"
+                    email = "me@blake.sh"
+                    organization = "Blake Beaupain"
+                    organizationUrl = "https://www.blake.sh"
+                }
+            }
+
+            scm {
+                connection = "scm:git:git://github.com/bbeaupain/nio_uring.git"
+                developerConnection = "scm:git:git://github.com/bbeaupain/nio_uring.git"
+                url = "https://github.com/bbeaupain/nio_uring"
+            }
+        }
+    }.writeTo("pom.xml")
+}
+
+task sourcesJar(type: Jar, dependsOn: classes) {
+    classifier = 'sources'
+    from sourceSets.main.allSource
+}
+
+task javadocJar(type: Jar, dependsOn: javadoc) {
+    classifier = 'javadoc'
+    from javadoc.destinationDir
+}
+
+artifacts {
+    archives sourcesJar
+    archives javadocJar
+}
+
 model {
     binaries {
         all {
