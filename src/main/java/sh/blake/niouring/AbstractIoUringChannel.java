@@ -27,7 +27,6 @@ public abstract class AbstractIoUringChannel {
         this.fd = fd;
     }
 
-
     protected void handleReadCompletion(AbstractIoUringChannel channel, ByteBuffer buffer, int bytesRead) {
         if (bytesRead < 0) {
             channel.close();
@@ -173,14 +172,29 @@ public abstract class AbstractIoUringChannel {
         return closeHandler;
     }
 
-    public void onClose(Runnable closeHandler) {
+    /**
+     * Sets the handler to be called when the channel is closed.
+     * @param closeHandler The close handler
+     * @return this instance
+     */
+    public AbstractIoUringChannel onClose(Runnable closeHandler) {
         this.closeHandler = closeHandler;
+        return this;
     }
 
+    /**
+     * Check if the channel is closed.
+     *
+     * @return true if the channel has been closed
+     */
     public boolean isClosed() {
         return closed;
     }
 
+    /**
+     * Check if the channel is open.
+     * @return true if the channel has not been closed
+     */
     public boolean isOpen() {
         return !closed;
     }

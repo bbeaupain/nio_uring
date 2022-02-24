@@ -21,6 +21,7 @@ public final class IoUring {
     private final int ringSize;
     private final Map<Integer, AbstractIoUringChannel> fdToSocket = new HashMap<>();
     private Consumer<Exception> exceptionHandler;
+    private boolean closed = false;
 
     /**
      * Instantiates a new {@code IoUring} with {@code DEFAULT_MAX_EVENTS}.
@@ -40,15 +41,19 @@ public final class IoUring {
         this.ring = IoUring.create(ringSize);
     }
 
+    /**
+     * Closes the io_uring.
+     */
     public void close() {
+        closed = true;
         IoUring.close(ring);
     }
 
     /**
-     * Takes over the current thread with a loop calling {@code execute()}, until interrupted.
+     * Takes over the current thread with a loop calling {@code execute()}, until closed.
      */
     public void loop() {
-        while (!Thread.interrupted()) {
+        while (!closed) {
             execute();
         }
     }
@@ -69,6 +74,9 @@ public final class IoUring {
     }
 
     private int doExecute(boolean shouldWait) {
+        if (closed) {
+            throw new IllegalStateException("io_uring closed");
+        }
         long cqes = IoUring.createCqes(ringSize);
         try {
             int count = IoUring.submitAndGetCqes(ring, cqes, ringSize, shouldWait);

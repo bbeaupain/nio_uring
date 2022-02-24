@@ -1,10 +1,16 @@
 package sh.blake.niouring.util;
 
+/**
+ * Operating system version check utility.
+ */
 public class OsVersionCheck {
     private static final String OS = "Linux";
     private static final int MAJOR_VERSION = 5;
     private static final int MINOR_VERSION = 1;
 
+    /**
+     * Verifies that the host system is Linux 5.1 or greater.
+     */
     public static void verifySystemRequirements() {
         String os = System.getProperty("os.name");
         if (!os.contains(OS)) {

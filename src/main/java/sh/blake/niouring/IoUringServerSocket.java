@@ -14,6 +14,10 @@ public final class IoUringServerSocket extends AbstractIoUringSocket {
 
     /**
      * Instantiates a new {@code IoUringServerSocket}.
+     *
+     * @param address The address to bind to
+     * @param port The port to bind to
+     * @param backlog The backlog size
      */
     public IoUringServerSocket(String address, int port, int backlog) {
         super(AbstractIoUringSocket.create(), address, port);
@@ -21,20 +25,26 @@ public final class IoUringServerSocket extends AbstractIoUringSocket {
     }
 
     /**
-     * Instantiates a new {@code IoUringServerSocket}.
+     * Instantiates a new {@code IoUringServerSocket} with a default backlog size of {@code DEFAULT_BACKLOG}.
+     *
+     * @param address The address to bind to
+     * @param port The port to bind to
      */
     public IoUringServerSocket(String address, int port) {
         this(address, port, DEFAULT_BACKLOG);
     }
 
     /**
-     * Instantiates a new {@code IoUringServerSocket}.
+     * Instantiates a new {@code IoUringServerSocket} bound to "127.0.0.1" on the specified port with the default
+     * backlog size of {@code DEFAULT_BACKLOG}.
+     *
+     * @param port The port to bind to
      */
     public IoUringServerSocket(int port) {
         this("127.0.0.1", port, DEFAULT_BACKLOG);
     }
 
-    protected IoUringSocket handleAcceptCompletion(IoUring ioUring, IoUringServerSocket serverSocket, int channelFd, String ipAddress) {
+    IoUringSocket handleAcceptCompletion(IoUring ioUring, IoUringServerSocket serverSocket, int channelFd, String ipAddress) {
         if (channelFd < 0) {
             return null;
         }
