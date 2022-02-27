@@ -76,6 +76,14 @@ public final class IoUring {
         return doExecute(false);
     }
 
+    /**
+     * Submits all queued I/O operations.
+     * @return The number of operations submitted
+     */
+    public int submit() {
+        return IoUring.submit(ring);
+    }
+
     private int doExecute(boolean shouldWait) {
         if (closed) {
             throw new IllegalStateException("io_uring closed");
@@ -237,6 +245,7 @@ public final class IoUring {
     private static native void close(long ring);
     private static native long createCqes(int count);
     private static native void freeCqes(long cqes);
+    private static native int submit(long ring);
     private static native int submitAndGetCqes(long ring, long cqes, int cqesSize, boolean shouldWait);
     private static native byte getCqeEventType(long cqes, int cqeIndex);
     private static native int getCqeFd(long cqes, int cqeIndex);
