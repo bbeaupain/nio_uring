@@ -65,9 +65,7 @@ Java_sh_blake_niouring_IoUring_submit(JNIEnv *env, jclass cls, jlong ring_addres
     struct io_uring *ring = (struct io_uring *) ring_address;
     int32_t ret = io_uring_submit(ring);
     if (ret < 0) {
-        if (ret != -EBUSY) {
-            return throw_exception(env, "io_uring_submit", ret);
-        }
+        return throw_exception(env, "io_uring_submit", ret);
     }
     return ret;
 }
@@ -78,7 +76,7 @@ Java_sh_blake_niouring_IoUring_submitAndGetCqes(JNIEnv *env, jclass cls, jlong r
 
     int32_t ret = io_uring_submit(ring);
     if (ret < 0) {
-        if (ret != -EBUSY) {
+        if (ret != -EBUSY) { // if busy, continue handling completions
             return throw_exception(env, "io_uring_submit", ret);
         }
     }

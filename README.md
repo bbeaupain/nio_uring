@@ -19,7 +19,13 @@ For both of these, the higher the version the better - free performance!
 
 ## Maven Usage
 
-Is on the way!
+```xml
+<dependency>
+    <groupId>sh.blake.niouring</groupId>
+    <artifactId>nio_uring</artifactId>
+    <version>0.1.0</version>
+</dependency>
+```
 
 ## TCP Server Example
 
