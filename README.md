@@ -7,8 +7,6 @@
 * Truly zero-copy (the kernel addresses direct `ByteBuffer`s for I/O operations)
 * Slightly opinionated
 
-**This project is still under active development**, and the API has not been totally finalized.
-
 Feedback, suggestions, and contributions are most welcome!
 
 ## Requirements
