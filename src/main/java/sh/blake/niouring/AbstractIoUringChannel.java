@@ -1,5 +1,7 @@
 package sh.blake.niouring;
 
+import sh.blake.niouring.util.NativeLibraryLoader;
+
 import java.nio.ByteBuffer;
 import java.util.HashMap;
 import java.util.Map;
@@ -202,6 +204,6 @@ public abstract class AbstractIoUringChannel {
     private static native void close(int fd);
 
     static {
-        System.loadLibrary("nio_uring");
+        NativeLibraryLoader.load();
     }
 }

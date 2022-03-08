@@ -2,8 +2,6 @@ package sh.blake.niouring;
 
 import sh.blake.niouring.util.NativeLibraryLoader;
 
-import java.io.IOException;
-import java.net.URISyntaxException;
 import java.nio.ByteBuffer;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
@@ -92,11 +90,6 @@ public final class IoUringServerSocket extends AbstractIoUringSocket {
     private static native void bind(long fd, String host, int port, int backlog);
 
     static {
-        try {
-            NativeLibraryLoader.load("/libnio_uring.so");
-        } catch (IOException | URISyntaxException ex) {
-            ex.printStackTrace();
-            System.loadLibrary("nio_uring");
-        }
+        NativeLibraryLoader.load();
     }
 }

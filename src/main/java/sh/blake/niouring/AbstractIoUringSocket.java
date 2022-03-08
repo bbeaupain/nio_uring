@@ -1,5 +1,7 @@
 package sh.blake.niouring;
 
+import sh.blake.niouring.util.NativeLibraryLoader;
+
 /**
  * An {@link AbstractIoUringChannel} representing a network socket.
  */
@@ -30,6 +32,6 @@ public class AbstractIoUringSocket extends AbstractIoUringChannel {
     static native int create();
 
     static {
-        System.loadLibrary("nio_uring");
+        NativeLibraryLoader.load();
     }
 }
