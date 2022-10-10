@@ -1,17 +1,17 @@
 package sh.blake.niouring;
 
+import cern.colt.map.OpenIntObjectHashMap;
+import sh.blake.niouring.util.ReferenceCounter;
 import sh.blake.niouring.util.NativeLibraryLoader;
 
 import java.nio.ByteBuffer;
-import java.util.HashMap;
-import java.util.Map;
 import java.util.function.Consumer;
 
 /**
  * Primary interface for creating and working with an {@code io_uring}.
  */
 public final class IoUring {
-    private static final int DEFAULT_MAX_EVENTS = 512;
+    private static final int DEFAULT_MAX_EVENTS = 1024;
     private static final int EVENT_TYPE_ACCEPT = 0;
     private static final int EVENT_TYPE_READ = 1;
     private static final int EVENT_TYPE_WRITE = 2;
@@ -19,7 +19,7 @@ public final class IoUring {
 
     private final long ring;
     private final int ringSize;
-    private final Map<Integer, AbstractIoUringChannel> fdToSocket = new HashMap<>();
+    private final OpenIntObjectHashMap fdToSocket = new OpenIntObjectHashMap();
     private Consumer<Exception> exceptionHandler;
     private boolean closed = false;
 
@@ -117,7 +117,7 @@ public final class IoUring {
                 fdToSocket.put(socket.fd(), socket);
             }
         } else {
-            AbstractIoUringChannel channel = fdToSocket.get(fd);
+            AbstractIoUringChannel channel = (AbstractIoUringChannel) fdToSocket.get(fd);
             if (channel == null || channel.isClosed()) {
                 return;
             }
@@ -126,19 +126,25 @@ public final class IoUring {
                 if (eventType == EVENT_TYPE_CONNECT) {
                     ((IoUringSocket) channel).handleConnectCompletion(this, result);
                 } else if (eventType == EVENT_TYPE_READ) {
-                    ByteBuffer buffer = channel.readBufferMap().get(bufferAddress);
+                    ReferenceCounter<ByteBuffer> refCounter = (ReferenceCounter<ByteBuffer>) channel.readBufferMap().get(bufferAddress);
+                    ByteBuffer buffer = refCounter.ref();
                     if (buffer == null) {
                         throw new IllegalStateException("Buffer already removed");
                     }
-                    channel.readBufferMap().remove(bufferAddress);
-                    channel.handleReadCompletion(channel, buffer, result);
+                    if (refCounter.deincrementReferenceCount() == 0) {
+                        channel.readBufferMap().removeKey(bufferAddress);
+                    }
+                    channel.handleReadCompletion(buffer, result);
                 } else if (eventType == EVENT_TYPE_WRITE) {
-                    ByteBuffer buffer = channel.writeBufferMap().get(bufferAddress);
+                    ReferenceCounter<ByteBuffer> refCounter = (ReferenceCounter<ByteBuffer>) channel.writeBufferMap().get(bufferAddress);
+                    ByteBuffer buffer = refCounter.ref();
                     if (buffer == null) {
                         throw new IllegalStateException("Buffer already removed");
                     }
-                    channel.writeBufferMap().remove(bufferAddress);
-                    channel.handleWriteCompletion(channel, buffer, result);
+                    if (refCounter.deincrementReferenceCount() == 0) {
+                        channel.writeBufferMap().removeKey(bufferAddress);
+                    }
+                    channel.handleWriteCompletion(buffer, result);
                 }
             } catch (Exception ex) {
                 if (channel.exceptionHandler() != null) {
@@ -189,7 +195,12 @@ public final class IoUring {
         }
         fdToSocket.put(channel.fd(), channel);
         long bufferAddress = IoUring.queueRead(ring, channel.fd(), buffer, buffer.position(), buffer.limit() - buffer.position());
-        channel.readBufferMap().put(bufferAddress, buffer);
+        ReferenceCounter<ByteBuffer> refCounter = (ReferenceCounter<ByteBuffer>) channel.readBufferMap().get(bufferAddress);
+        if (refCounter == null) {
+            refCounter = new ReferenceCounter<>(buffer);
+            channel.readBufferMap().put(bufferAddress, refCounter);
+        }
+        refCounter.incrementReferenceCount();
         return this;
     }
 
@@ -205,7 +216,12 @@ public final class IoUring {
         }
         fdToSocket.put(channel.fd(), channel);
         long bufferAddress = IoUring.queueWrite(ring, channel.fd(), buffer, buffer.position(), buffer.limit() - buffer.position());
-        channel.writeBufferMap().put(bufferAddress, buffer);
+        ReferenceCounter<ByteBuffer> refCounter = (ReferenceCounter<ByteBuffer>) channel.writeBufferMap().get(bufferAddress);
+        if (refCounter == null) {
+            refCounter = new ReferenceCounter<>(buffer);
+            channel.writeBufferMap().put(bufferAddress, refCounter);
+        }
+        refCounter.incrementReferenceCount();
         return this;
     }
 
@@ -234,7 +250,7 @@ public final class IoUring {
      * @param channel the channel
      */
     void deregister(AbstractIoUringChannel channel) {
-        fdToSocket.remove(channel.fd());
+        fdToSocket.removeKey(channel.fd());
     }
 
     private static native long create(int maxEvents);

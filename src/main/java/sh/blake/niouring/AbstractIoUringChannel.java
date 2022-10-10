@@ -1,10 +1,9 @@
 package sh.blake.niouring;
 
+import cern.colt.map.OpenLongObjectHashMap;
 import sh.blake.niouring.util.NativeLibraryLoader;
 
 import java.nio.ByteBuffer;
-import java.util.HashMap;
-import java.util.Map;
 import java.util.function.Consumer;
 
 /**
@@ -12,8 +11,8 @@ import java.util.function.Consumer;
  */
 public abstract class AbstractIoUringChannel {
     private final int fd;
-    private final Map<Long, ByteBuffer> readBufferMap = new HashMap<>();
-    private final Map<Long, ByteBuffer> writeBufferMap = new HashMap<>();
+    private final OpenLongObjectHashMap readBufferMap = new OpenLongObjectHashMap();
+    private final OpenLongObjectHashMap writeBufferMap = new OpenLongObjectHashMap();
     private boolean closed = false;
     private Consumer<ByteBuffer> readHandler;
     private Consumer<ByteBuffer> writeHandler;
@@ -29,25 +28,25 @@ public abstract class AbstractIoUringChannel {
         this.fd = fd;
     }
 
-    protected void handleReadCompletion(AbstractIoUringChannel channel, ByteBuffer buffer, int bytesRead) {
-        if (bytesRead < 0) {
-            channel.close();
+    protected void handleReadCompletion(ByteBuffer buffer, int bytesRead) {
+        if (bytesRead <= 0) {
+            close();
             return;
         }
         buffer.position(buffer.position() + bytesRead);
-        if (channel.readHandler() != null) {
-            channel.readHandler().accept(buffer);
+        if (readHandler() != null) {
+            readHandler().accept(buffer);
         }
     }
 
-    protected void handleWriteCompletion(AbstractIoUringChannel channel, ByteBuffer buffer, int bytesWritten) {
-        if (bytesWritten < 0) {
-            channel.close();
+    protected void handleWriteCompletion(ByteBuffer buffer, int bytesWritten) {
+        if (bytesWritten <= 0) {
+            close();
             return;
         }
         buffer.position(buffer.position() + bytesWritten);
-        if (channel.writeHandler() != null) {
-            channel.writeHandler().accept(buffer);
+        if (writeHandler() != null) {
+            writeHandler().accept(buffer);
         }
     }
 
@@ -146,7 +145,7 @@ public abstract class AbstractIoUringChannel {
      *
      * @return the read buffer map
      */
-    Map<Long, ByteBuffer> readBufferMap() {
+    OpenLongObjectHashMap readBufferMap() {
         return readBufferMap;
     }
 
@@ -155,7 +154,7 @@ public abstract class AbstractIoUringChannel {
      *
      * @return the write buffer map
      */
-    Map<Long, ByteBuffer> writeBufferMap() {
+    OpenLongObjectHashMap writeBufferMap() {
         return writeBufferMap;
     }
 
