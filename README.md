@@ -21,7 +21,7 @@ For both of these, the higher the version the better - free performance!
 <dependency>
     <groupId>sh.blake.niouring</groupId>
     <artifactId>nio_uring</artifactId>
-    <version>0.1.1</version>
+    <version>0.1.2</version>
 </dependency>
 ```
 
