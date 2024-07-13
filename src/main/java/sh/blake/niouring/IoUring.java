@@ -54,6 +54,7 @@ public final class IoUring {
         }
         closed = true;
         IoUring.close(ring);
+        IoUring.freeCqes(cqes);
     }
 
     /**
