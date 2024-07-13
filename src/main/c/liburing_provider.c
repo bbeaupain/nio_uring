@@ -124,7 +124,7 @@ Java_sh_blake_niouring_IoUring_submitAndGetCqes(JNIEnv *env, jclass cls, jlong r
         struct request *req = (struct request *) cqe->user_data;
 
         if (buf_index + 9 >= buf_capacity) {
-            return -1;
+            return ERROR_BUFFER_WOULD_OVERFLOW;
         }
 
         buffer[buf_index++] = cqe->res >> 24;
@@ -141,7 +141,7 @@ Java_sh_blake_niouring_IoUring_submitAndGetCqes(JNIEnv *env, jclass cls, jlong r
 
         if (req->event_type == EVENT_TYPE_READ || req->event_type == EVENT_TYPE_WRITE) {
             if (buf_index + 8 >= buf_capacity) {
-                return -1;
+                return ERROR_BUFFER_WOULD_OVERFLOW;
             }
 
             buffer[buf_index++] = req->buffer_addr >> 56;

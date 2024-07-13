@@ -17,6 +17,7 @@ public final class IoUring {
     private static final int EVENT_TYPE_WRITE = 2;
     private static final int EVENT_TYPE_CONNECT = 3;
     private static final int EVENT_TYPE_CLOSE = 4;
+    private static final int ERROR_BUFFER_WOULD_OVERFLOW = -1;
 
     private final long ring;
     private final int ringSize;
@@ -86,8 +87,8 @@ public final class IoUring {
         }
         try {
             int count = IoUring.submitAndGetCqes(ring, resultBuffer, cqes, ringSize, shouldWait);
-            if (count == -1) {
-                throw new IllegalStateException("submitAndGetCqes returned -1");
+            if (count == ERROR_BUFFER_WOULD_OVERFLOW) {
+                throw new IllegalStateException("Buffer would overflow");
             }
             for (int i = 0; i < count && i < ringSize; i++) {
                 try {

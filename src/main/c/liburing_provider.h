@@ -4,6 +4,8 @@
 #include <jni.h>
 #include <stdint.h>
 
+#define ERROR_BUFFER_WOULD_OVERFLOW -1
+
 JNIEXPORT jlong JNICALL
 Java_sh_blake_niouring_IoUring_createCqes(JNIEnv *env, jclass cls, jint count);
 
