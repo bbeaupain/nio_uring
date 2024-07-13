@@ -1,6 +1,6 @@
 package sh.blake.niouring;
 
-import cern.colt.map.OpenIntObjectHashMap;
+import org.eclipse.collections.impl.map.mutable.primitive.IntObjectHashMap;
 import sh.blake.niouring.util.ReferenceCounter;
 import sh.blake.niouring.util.NativeLibraryLoader;
 
@@ -16,12 +16,15 @@ public final class IoUring {
     private static final int EVENT_TYPE_READ = 1;
     private static final int EVENT_TYPE_WRITE = 2;
     private static final int EVENT_TYPE_CONNECT = 3;
+    private static final int EVENT_TYPE_CLOSE = 4;
 
     private final long ring;
     private final int ringSize;
-    private final OpenIntObjectHashMap fdToSocket = new OpenIntObjectHashMap();
+    private final IntObjectHashMap<AbstractIoUringChannel> fdToSocket = new IntObjectHashMap<>();
     private Consumer<Exception> exceptionHandler;
     private boolean closed = false;
+    private final long cqes;
+    private final ByteBuffer resultBuffer;
 
     /**
      * Instantiates a new {@code IoUring} with {@code DEFAULT_MAX_EVENTS}.
@@ -38,12 +41,17 @@ public final class IoUring {
     public IoUring(int ringSize) {
         this.ringSize = ringSize;
         this.ring = IoUring.create(ringSize);
+        this.cqes = IoUring.createCqes(ringSize);
+        this.resultBuffer = ByteBuffer.allocateDirect(ringSize * 17);
     }
 
     /**
      * Closes the io_uring.
      */
     public void close() {
+        if (closed) {
+            throw new IllegalStateException("io_uring closed");
+        }
         closed = true;
         IoUring.close(ring);
     }
@@ -72,24 +80,15 @@ public final class IoUring {
         return doExecute(false);
     }
 
-    /**
-     * Submits all queued I/O operations.
-     * @return The number of operations submitted
-     */
-    public int submit() {
-        return IoUring.submit(ring);
-    }
-
     private int doExecute(boolean shouldWait) {
         if (closed) {
             throw new IllegalStateException("io_uring closed");
         }
-        long cqes = IoUring.createCqes(ringSize);
         try {
-            int count = IoUring.submitAndGetCqes(ring, cqes, ringSize, shouldWait);
+            int count = IoUring.submitAndGetCqes(ring, resultBuffer, cqes, ringSize, shouldWait);
             for (int i = 0; i < count && i < ringSize; i++) {
                 try {
-                    handleEventCompletion(cqes, i);
+                    handleEventCompletion(cqes, resultBuffer, i);
                 } finally {
                     IoUring.markCqeSeen(ring, cqes, i);
                 }
@@ -100,15 +99,16 @@ public final class IoUring {
                 exceptionHandler.accept(ex);
             }
         } finally {
-            IoUring.freeCqes(cqes);
+            resultBuffer.clear();
         }
         return -1;
     }
 
-    private void handleEventCompletion(long cqes, int i) {
-        int fd = IoUring.getCqeFd(cqes, i);
-        int eventType = IoUring.getCqeEventType(cqes, i);
-        int result = IoUring.getCqeResult(cqes, i);
+    private void handleEventCompletion(long cqes, ByteBuffer results, int i) {
+        int result = results.getInt();
+        int fd = results.getInt();
+        int eventType = results.get();
+
         if (eventType == EVENT_TYPE_ACCEPT) {
             IoUringServerSocket serverSocket = (IoUringServerSocket) fdToSocket.get(fd);
             String ipAddress = IoUring.getCqeIpAddress(cqes, i);
@@ -117,34 +117,38 @@ public final class IoUring {
                 fdToSocket.put(socket.fd(), socket);
             }
         } else {
-            AbstractIoUringChannel channel = (AbstractIoUringChannel) fdToSocket.get(fd);
+            AbstractIoUringChannel channel = fdToSocket.get(fd);
             if (channel == null || channel.isClosed()) {
                 return;
             }
-            long bufferAddress = IoUring.getCqeBufferAddress(cqes, i);
             try {
                 if (eventType == EVENT_TYPE_CONNECT) {
                     ((IoUringSocket) channel).handleConnectCompletion(this, result);
                 } else if (eventType == EVENT_TYPE_READ) {
-                    ReferenceCounter<ByteBuffer> refCounter = (ReferenceCounter<ByteBuffer>) channel.readBufferMap().get(bufferAddress);
+                    long bufferAddress = results.getLong();
+                    ReferenceCounter<ByteBuffer> refCounter = channel.readBufferMap().get(bufferAddress);
                     ByteBuffer buffer = refCounter.ref();
                     if (buffer == null) {
                         throw new IllegalStateException("Buffer already removed");
                     }
                     if (refCounter.deincrementReferenceCount() == 0) {
-                        channel.readBufferMap().removeKey(bufferAddress);
+                        channel.readBufferMap().remove(bufferAddress);
                     }
                     channel.handleReadCompletion(buffer, result);
                 } else if (eventType == EVENT_TYPE_WRITE) {
-                    ReferenceCounter<ByteBuffer> refCounter = (ReferenceCounter<ByteBuffer>) channel.writeBufferMap().get(bufferAddress);
+                    long bufferAddress = results.getLong();
+                    ReferenceCounter<ByteBuffer> refCounter = channel.writeBufferMap().get(bufferAddress);
                     ByteBuffer buffer = refCounter.ref();
                     if (buffer == null) {
                         throw new IllegalStateException("Buffer already removed");
                     }
                     if (refCounter.deincrementReferenceCount() == 0) {
-                        channel.writeBufferMap().removeKey(bufferAddress);
+                        channel.writeBufferMap().remove(bufferAddress);
                     }
                     channel.handleWriteCompletion(buffer, result);
+                } else if (eventType == EVENT_TYPE_CLOSE) {
+                    channel.setClosed(true);
+                    channel.closeHandler().run();
                 }
             } catch (Exception ex) {
                 if (channel.exceptionHandler() != null) {
@@ -195,7 +199,7 @@ public final class IoUring {
         }
         fdToSocket.put(channel.fd(), channel);
         long bufferAddress = IoUring.queueRead(ring, channel.fd(), buffer, buffer.position(), buffer.limit() - buffer.position());
-        ReferenceCounter<ByteBuffer> refCounter = (ReferenceCounter<ByteBuffer>) channel.readBufferMap().get(bufferAddress);
+        ReferenceCounter<ByteBuffer> refCounter = channel.readBufferMap().get(bufferAddress);
         if (refCounter == null) {
             refCounter = new ReferenceCounter<>(buffer);
             channel.readBufferMap().put(bufferAddress, refCounter);
@@ -216,12 +220,17 @@ public final class IoUring {
         }
         fdToSocket.put(channel.fd(), channel);
         long bufferAddress = IoUring.queueWrite(ring, channel.fd(), buffer, buffer.position(), buffer.limit() - buffer.position());
-        ReferenceCounter<ByteBuffer> refCounter = (ReferenceCounter<ByteBuffer>) channel.writeBufferMap().get(bufferAddress);
+        ReferenceCounter<ByteBuffer> refCounter = channel.writeBufferMap().get(bufferAddress);
         if (refCounter == null) {
             refCounter = new ReferenceCounter<>(buffer);
             channel.writeBufferMap().put(bufferAddress, refCounter);
         }
         refCounter.incrementReferenceCount();
+        return this;
+    }
+
+    public IoUring queueClose(AbstractIoUringChannel channel) {
+        IoUring.queueClose(ring, channel.fd());
         return this;
     }
 
@@ -250,25 +259,25 @@ public final class IoUring {
      * @param channel the channel
      */
     void deregister(AbstractIoUringChannel channel) {
-        fdToSocket.removeKey(channel.fd());
+        fdToSocket.remove(channel.fd());
     }
 
     private static native long create(int maxEvents);
     private static native void close(long ring);
     private static native long createCqes(int count);
     private static native void freeCqes(long cqes);
-    private static native int submit(long ring);
-    private static native int submitAndGetCqes(long ring, long cqes, int cqesSize, boolean shouldWait);
+    private static native int submitAndGetCqes(long ring, ByteBuffer buffer, long cqes, int cqesSize, boolean shouldWait);
     private static native byte getCqeEventType(long cqes, int cqeIndex);
     private static native int getCqeFd(long cqes, int cqeIndex);
     private static native int getCqeResult(long cqes, int cqeIndex);
     private static native long getCqeBufferAddress(long cqes, int cqeIndex);
     private static native String getCqeIpAddress(long cqes, int cqeIndex);
-    private static native int markCqeSeen(long ring, long cqes, int cqeIndex);
+    private static native void markCqeSeen(long ring, long cqes, int cqeIndex);
     private static native void queueAccept(long ring, int serverSocketFd);
     private static native void queueConnect(long ring, int socketFd, String ipAddress, int port);
     private static native long queueRead(long ring, int channelFd, ByteBuffer buffer, int bufferPos, int bufferLen);
     private static native long queueWrite(long ring, int channelFd, ByteBuffer buffer, int bufferPos, int bufferLen);
+    private static native void queueClose(long ring, int channelFd);
 
     static {
         NativeLibraryLoader.load();
