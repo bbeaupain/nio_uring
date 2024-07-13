@@ -123,8 +123,8 @@ Java_sh_blake_niouring_IoUring_submitAndGetCqes(JNIEnv *env, jclass cls, jlong r
         struct io_uring_cqe *cqe = cqes[cqe_index];
         struct request *req = (struct request *) cqe->user_data;
 
-        if (buf_index + 9 > buf_capacity) {
-            break;
+        if (buf_index + 9 >= buf_capacity) {
+            return -1;
         }
 
         buffer[buf_index++] = cqe->res >> 24;
@@ -140,8 +140,8 @@ Java_sh_blake_niouring_IoUring_submitAndGetCqes(JNIEnv *env, jclass cls, jlong r
         buffer[buf_index++] = req->event_type;
 
         if (req->event_type == EVENT_TYPE_READ || req->event_type == EVENT_TYPE_WRITE) {
-            if (buf_index + 8 > buf_capacity) {
-                break;
+            if (buf_index + 8 >= buf_capacity) {
+                return -1;
             }
 
             buffer[buf_index++] = req->buffer_addr >> 56;
