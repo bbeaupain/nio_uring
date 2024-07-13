@@ -86,6 +86,9 @@ public final class IoUring {
         }
         try {
             int count = IoUring.submitAndGetCqes(ring, resultBuffer, cqes, ringSize, shouldWait);
+            if (count == -1) {
+                throw new IllegalStateException("submitAndGetCqes returned -1");
+            }
             for (int i = 0; i < count && i < ringSize; i++) {
                 try {
                     handleEventCompletion(cqes, resultBuffer, i);
