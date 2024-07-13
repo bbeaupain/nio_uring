@@ -166,37 +166,6 @@ Java_sh_blake_niouring_IoUring_freeCqes(JNIEnv *env, jclass cls, jlong cqes_addr
     free(cqes);
 }
 
-JNIEXPORT jbyte JNICALL
-Java_sh_blake_niouring_IoUring_getCqeEventType(JNIEnv *env, jclass cls, jlong cqes_address, jint cqe_index) {
-    struct io_uring_cqe **cqes = (struct io_uring_cqe **) cqes_address;
-    struct io_uring_cqe *cqe = cqes[cqe_index];
-    struct request *req = (struct request *) cqe->user_data;
-    return (int32_t) req->event_type;
-}
-
-JNIEXPORT jint JNICALL
-Java_sh_blake_niouring_IoUring_getCqeFd(JNIEnv *env, jclass cls, jlong cqes_address, jint cqe_index) {
-    struct io_uring_cqe **cqes = (struct io_uring_cqe **) cqes_address;
-    struct io_uring_cqe *cqe = cqes[cqe_index];
-    struct request *req = (struct request *) cqe->user_data;
-    return (int32_t) req->fd;
-}
-
-JNIEXPORT jint JNICALL
-Java_sh_blake_niouring_IoUring_getCqeResult(JNIEnv *env, jclass cls, jlong cqes_address, jint cqe_index) {
-    struct io_uring_cqe **cqes = (struct io_uring_cqe **) cqes_address;
-    struct io_uring_cqe *cqe = cqes[cqe_index];
-    return (int32_t) cqe->res;
-}
-
-JNIEXPORT jlong JNICALL
-Java_sh_blake_niouring_IoUring_getCqeBufferAddress(JNIEnv *env, jclass cls, jlong cqes_address, jint cqe_index) {
-    struct io_uring_cqe **cqes = (struct io_uring_cqe **) cqes_address;
-    struct io_uring_cqe *cqe = cqes[cqe_index];
-    struct request *req = (struct request *) cqe->user_data;
-    return (int64_t) req->buffer_addr;
-}
-
 JNIEXPORT jstring JNICALL
 Java_sh_blake_niouring_IoUring_getCqeIpAddress(JNIEnv *env, jclass cls, jlong cqes_address, jint cqe_index) {
     struct io_uring_cqe **cqes = (struct io_uring_cqe **) cqes_address;

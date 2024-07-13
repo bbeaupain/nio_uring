@@ -270,10 +270,6 @@ public final class IoUring {
     private static native long createCqes(int count);
     private static native void freeCqes(long cqes);
     private static native int submitAndGetCqes(long ring, ByteBuffer buffer, long cqes, int cqesSize, boolean shouldWait);
-    private static native byte getCqeEventType(long cqes, int cqeIndex);
-    private static native int getCqeFd(long cqes, int cqeIndex);
-    private static native int getCqeResult(long cqes, int cqeIndex);
-    private static native long getCqeBufferAddress(long cqes, int cqeIndex);
     private static native String getCqeIpAddress(long cqes, int cqeIndex);
     private static native void markCqeSeen(long ring, long cqes, int cqeIndex);
     private static native void queueAccept(long ring, int serverSocketFd);

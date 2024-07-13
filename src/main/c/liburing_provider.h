@@ -25,18 +25,6 @@ Java_sh_blake_niouring_IoUring_getCqes(JNIEnv *env, jclass cls, jlong ring_addre
 JNIEXPORT jint JNICALL
 Java_sh_blake_niouring_IoUring_submitAndGetCqes(JNIEnv *env, jclass cls, jlong ring_address, jobject byte_buffer, jlong cqes_address, jint cqes_size, jboolean should_wait);
 
-JNIEXPORT jbyte JNICALL
-Java_sh_blake_niouring_IoUring_getCqeEventType(JNIEnv *env, jclass cls, jlong cqes_address, jint cqe_index);
-
-JNIEXPORT jint JNICALL
-Java_sh_blake_niouring_IoUring_getCqeFd(JNIEnv *env, jclass cls, jlong cqes_address, jint cqe_index);
-
-JNIEXPORT jint JNICALL
-Java_sh_blake_niouring_IoUring_getCqeResult(JNIEnv *env, jclass cls, jlong cqes_address, jint cqe_index);
-
-JNIEXPORT jlong JNICALL
-Java_sh_blake_niouring_IoUring_getCqeBufferAddress(JNIEnv *env, jclass cls, jlong cqes_address, jint cqe_index);
-
 JNIEXPORT jstring JNICALL
 Java_sh_blake_niouring_IoUring_getCqeIpAddress(JNIEnv *env, jclass cls, jlong cqes_address, jint cqe_index);
 
