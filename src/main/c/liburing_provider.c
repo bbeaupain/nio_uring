@@ -114,13 +114,18 @@ Java_sh_blake_niouring_IoUring_submitAndGetCqes(JNIEnv *env, jclass cls, jlong r
         return throw_exception(env, "invalid byte buffer (read)", -EINVAL);
     }
 
-    // TODO: check buffer size, do not overflow
+
+    long buf_capacity = (*env)->GetDirectBufferCapacity(env, byte_buffer);
 
     int32_t cqe_index = 0;
     int32_t buf_index = 0;
     while (cqe_index < ret) {
         struct io_uring_cqe *cqe = cqes[cqe_index];
         struct request *req = (struct request *) cqe->user_data;
+
+        if (buf_index + 9 > buf_capacity) {
+            break;
+        }
 
         buffer[buf_index++] = cqe->res >> 24;
         buffer[buf_index++] = cqe->res >> 16;
@@ -135,6 +140,10 @@ Java_sh_blake_niouring_IoUring_submitAndGetCqes(JNIEnv *env, jclass cls, jlong r
         buffer[buf_index++] = req->event_type;
 
         if (req->event_type == EVENT_TYPE_READ || req->event_type == EVENT_TYPE_WRITE) {
+            if (buf_index + 8 > buf_capacity) {
+                break;
+            }
+
             buffer[buf_index++] = req->buffer_addr >> 56;
             buffer[buf_index++] = req->buffer_addr >> 48;
             buffer[buf_index++] = req->buffer_addr >> 40;
