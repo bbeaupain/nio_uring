@@ -114,7 +114,6 @@ Java_sh_blake_niouring_IoUring_submitAndGetCqes(JNIEnv *env, jclass cls, jlong r
         return throw_exception(env, "invalid byte buffer (read)", -EINVAL);
     }
 
-
     long buf_capacity = (*env)->GetDirectBufferCapacity(env, byte_buffer);
 
     int32_t cqe_index = 0;
