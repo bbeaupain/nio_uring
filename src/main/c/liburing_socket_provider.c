@@ -42,6 +42,7 @@ Java_sh_blake_niouring_IoUringServerSocket_bind(JNIEnv *env, jclass cls, jlong s
     srv_addr.sin_family = AF_INET;
     srv_addr.sin_port = htons(port);
     srv_addr.sin_addr.s_addr = inet_addr(ip);
+
     (*env)->ReleaseStringUTFChars(env, ip_address, ip);
 
     int32_t ret = bind(server_socket_fd, (const struct sockaddr *) &srv_addr, sizeof(srv_addr));

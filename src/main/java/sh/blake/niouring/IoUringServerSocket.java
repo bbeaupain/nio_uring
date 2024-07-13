@@ -9,7 +9,7 @@ import java.util.function.Consumer;
 /**
  * A {@code ServerSocket} analog for working with an {@code io_uring}.
  */
-public final class IoUringServerSocket extends AbstractIoUringSocket {
+public class IoUringServerSocket extends AbstractIoUringSocket {
     private static final int DEFAULT_BACKLOG = 65535;
 
     private BiConsumer<IoUring, IoUringSocket> acceptHandler;

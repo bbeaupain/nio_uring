@@ -5,7 +5,7 @@ import java.util.function.Consumer;
 /**
  * A {@code Socket} analog for working with an {@code io_uring}.
  */
-public final class IoUringSocket extends AbstractIoUringSocket {
+public class IoUringSocket extends AbstractIoUringSocket {
     private Consumer<IoUring> connectHandler;
 
     /**

@@ -1,7 +1,8 @@
 package sh.blake.niouring;
 
-import cern.colt.map.OpenLongObjectHashMap;
+import org.eclipse.collections.impl.map.mutable.primitive.LongObjectHashMap;
 import sh.blake.niouring.util.NativeLibraryLoader;
+import sh.blake.niouring.util.ReferenceCounter;
 
 import java.nio.ByteBuffer;
 import java.util.function.Consumer;
@@ -11,8 +12,8 @@ import java.util.function.Consumer;
  */
 public abstract class AbstractIoUringChannel {
     private final int fd;
-    private final OpenLongObjectHashMap readBufferMap = new OpenLongObjectHashMap();
-    private final OpenLongObjectHashMap writeBufferMap = new OpenLongObjectHashMap();
+    private final LongObjectHashMap<ReferenceCounter<ByteBuffer>> readBufferMap = new LongObjectHashMap<>();
+    private final LongObjectHashMap<ReferenceCounter<ByteBuffer>> writeBufferMap = new LongObjectHashMap<>();
     private boolean closed = false;
     private Consumer<ByteBuffer> readHandler;
     private Consumer<ByteBuffer> writeHandler;
@@ -29,7 +30,7 @@ public abstract class AbstractIoUringChannel {
     }
 
     protected void handleReadCompletion(ByteBuffer buffer, int bytesRead) {
-        if (bytesRead <= 0) {
+        if (bytesRead < 0) {
             close();
             return;
         }
@@ -40,7 +41,7 @@ public abstract class AbstractIoUringChannel {
     }
 
     protected void handleWriteCompletion(ByteBuffer buffer, int bytesWritten) {
-        if (bytesWritten <= 0) {
+        if (bytesWritten < 0) {
             close();
             return;
         }
@@ -145,7 +146,7 @@ public abstract class AbstractIoUringChannel {
      *
      * @return the read buffer map
      */
-    OpenLongObjectHashMap readBufferMap() {
+    LongObjectHashMap<ReferenceCounter<ByteBuffer>> readBufferMap() {
         return readBufferMap;
     }
 
@@ -154,7 +155,7 @@ public abstract class AbstractIoUringChannel {
      *
      * @return the write buffer map
      */
-    OpenLongObjectHashMap writeBufferMap() {
+    LongObjectHashMap<ReferenceCounter<ByteBuffer>> writeBufferMap() {
         return writeBufferMap;
     }
 
@@ -190,6 +191,10 @@ public abstract class AbstractIoUringChannel {
      */
     public boolean isClosed() {
         return closed;
+    }
+
+    void setClosed(boolean closed) {
+        this.closed = closed;
     }
 
     /**
