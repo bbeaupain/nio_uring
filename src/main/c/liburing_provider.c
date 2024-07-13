@@ -62,33 +62,6 @@ Java_sh_blake_niouring_IoUring_close(JNIEnv *env, jclass cls, jlong ring_address
 }
 
 JNIEXPORT jint JNICALL
-Java_sh_blake_niouring_IoUring_submit(JNIEnv *env, jclass cls, jlong ring_address) {
-    struct io_uring *ring = (struct io_uring *) ring_address;
-    int32_t ret = io_uring_submit(ring);
-    if (ret < 0) {
-        return throw_exception(env, "io_uring_submit", ret);
-    }
-    return ret;
-}
-
-JNIEXPORT jint JNICALL
-Java_sh_blake_niouring_IoUring_getCqes(JNIEnv *env, jclass cls, jlong ring_address, jlong cqes_address, jint cqes_size, jboolean should_wait) {
-    struct io_uring *ring = (struct io_uring *) ring_address;
-    struct io_uring_cqe **cqes = (struct io_uring_cqe **) cqes_address;
-
-    int32_t ret = io_uring_peek_batch_cqe(ring, cqes, cqes_size);
-    if (ret == 0 && should_wait) {
-        ret = io_uring_wait_cqe(ring, cqes);
-        if (ret < 0) {
-            return throw_exception(env, "io_uring_wait_cqe", ret);
-        }
-        ret = 1;
-    }
-
-    return (int32_t) ret;
-}
-
-JNIEXPORT jint JNICALL
 Java_sh_blake_niouring_IoUring_submitAndGetCqes(JNIEnv *env, jclass cls, jlong ring_address, jobject byte_buffer, jlong cqes_address, jint cqes_size, jboolean should_wait) {
     struct io_uring *ring = (struct io_uring *) ring_address;
 
