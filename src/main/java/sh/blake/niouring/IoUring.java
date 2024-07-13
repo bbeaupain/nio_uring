@@ -10,7 +10,7 @@ import java.util.function.Consumer;
 /**
  * Primary interface for creating and working with an {@code io_uring}.
  */
-public final class IoUring {
+public class IoUring {
     private static final int DEFAULT_MAX_EVENTS = 1024;
     private static final int EVENT_TYPE_ACCEPT = 0;
     private static final int EVENT_TYPE_READ = 1;
