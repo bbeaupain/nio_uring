@@ -32,10 +32,10 @@ JNIEXPORT void JNICALL
 Java_sh_blake_niouring_IoUring_queueConnect(JNIEnv *env, jclass cls, jlong ring_address, jint socket_fd, jstring ip_address, jint port);
 
 JNIEXPORT jlong JNICALL
-Java_sh_blake_niouring_IoUring_queueRead(JNIEnv *env, jclass cls, jlong ring_address, jint fd, jobject byte_buffer, jint buffer_pos, jint buffer_len);
+Java_sh_blake_niouring_IoUring_queueRead(JNIEnv *env, jclass cls, jlong ring_address, jint fd, jobject byte_buffer, jint buffer_pos, jint buffer_len, jlong io_offset);
 
 JNIEXPORT jlong JNICALL
-Java_sh_blake_niouring_IoUring_queueWrite(JNIEnv *env, jclass cls, jlong ring_address, jint fd, jobject byte_buffer, jint buffer_pos, jint buffer_len);
+Java_sh_blake_niouring_IoUring_queueWrite(JNIEnv *env, jclass cls, jlong ring_address, jint fd, jobject byte_buffer, jint buffer_pos, jint buffer_len, jlong io_offset);
 
 JNIEXPORT void JNICALL
 Java_sh_blake_niouring_IoUring_queueClose(JNIEnv *env, jclass cls, jlong ring_address, jint fd);

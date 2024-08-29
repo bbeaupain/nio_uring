@@ -195,11 +195,23 @@ public class IoUring {
      * @return this instance
      */
     public IoUring queueRead(AbstractIoUringChannel channel, ByteBuffer buffer) {
+        return queueRead(channel, buffer, 0L);
+    }
+
+    /**
+     * Queues {@link IoUringSocket} for a read operation on the next ring execution.
+     *
+     * @param channel the channel
+     * @param buffer the buffer to read into
+     * @param offset the offset into the file/source of the read; Casted to u64
+     * @return this instance
+     */
+    public IoUring queueRead(AbstractIoUringChannel channel, ByteBuffer buffer, long offset) {
         if (!buffer.isDirect()) {
             throw new IllegalArgumentException("Buffer must be direct");
         }
         fdToSocket.put(channel.fd(), channel);
-        long bufferAddress = IoUring.queueRead(ring, channel.fd(), buffer, buffer.position(), buffer.limit() - buffer.position());
+        long bufferAddress = IoUring.queueRead(ring, channel.fd(), buffer, buffer.position(), buffer.limit() - buffer.position(), offset);
         ReferenceCounter<ByteBuffer> refCounter = channel.readBufferMap().get(bufferAddress);
         if (refCounter == null) {
             refCounter = new ReferenceCounter<>(buffer);
@@ -216,11 +228,22 @@ public class IoUring {
      * @return this instance
      */
     public IoUring queueWrite(AbstractIoUringChannel channel, ByteBuffer buffer) {
+        return queueWrite(channel, buffer, 0L);
+    }
+
+    /**
+     * Queues {@link IoUringSocket} for a write operation on the next ring execution.
+     *
+     * @param channel the channel
+     * @param offset the offset into the file/source of the write; Casted to u64
+     * @return this instance
+     */
+    public IoUring queueWrite(AbstractIoUringChannel channel, ByteBuffer buffer, long offset) {
         if (!buffer.isDirect()) {
             throw new IllegalArgumentException("Buffer must be direct");
         }
         fdToSocket.put(channel.fd(), channel);
-        long bufferAddress = IoUring.queueWrite(ring, channel.fd(), buffer, buffer.position(), buffer.limit() - buffer.position());
+        long bufferAddress = IoUring.queueWrite(ring, channel.fd(), buffer, buffer.position(), buffer.limit() - buffer.position(), offset);
         ReferenceCounter<ByteBuffer> refCounter = channel.writeBufferMap().get(bufferAddress);
         if (refCounter == null) {
             refCounter = new ReferenceCounter<>(buffer);
@@ -272,8 +295,8 @@ public class IoUring {
     private static native void markCqeSeen(long ring, long cqes, int cqeIndex);
     private static native void queueAccept(long ring, int serverSocketFd);
     private static native void queueConnect(long ring, int socketFd, String ipAddress, int port);
-    private static native long queueRead(long ring, int channelFd, ByteBuffer buffer, int bufferPos, int bufferLen);
-    private static native long queueWrite(long ring, int channelFd, ByteBuffer buffer, int bufferPos, int bufferLen);
+    private static native long queueRead(long ring, int channelFd, ByteBuffer buffer, int bufferPos, int bufferLen, long offset);
+    private static native long queueWrite(long ring, int channelFd, ByteBuffer buffer, int bufferPos, int bufferLen, long offset);
     private static native void queueClose(long ring, int channelFd);
 
     static {

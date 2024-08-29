@@ -210,7 +210,7 @@ Java_sh_blake_niouring_IoUring_queueConnect(JNIEnv *env, jclass cls, jlong ring_
 }
 
 JNIEXPORT jlong JNICALL
-Java_sh_blake_niouring_IoUring_queueRead(JNIEnv *env, jclass cls, jlong ring_address, jint fd, jobject byte_buffer, jint buffer_pos, jint buffer_len) {
+Java_sh_blake_niouring_IoUring_queueRead(JNIEnv *env, jclass cls, jlong ring_address, jint fd, jobject byte_buffer, jint buffer_pos, jint buffer_len, jlong io_offset) {
     void *buffer = (*env)->GetDirectBufferAddress(env, byte_buffer);
     if (buffer == NULL) {
         return throw_exception(env, "invalid byte buffer (read)", -EINVAL);
@@ -236,14 +236,14 @@ Java_sh_blake_niouring_IoUring_queueRead(JNIEnv *env, jclass cls, jlong ring_add
     req->buffer_addr = buffer;
     req->fd = fd;
 
-    io_uring_prep_read(sqe, fd, buffer + buffer_pos, buffer_len, 0);
+    io_uring_prep_read(sqe, fd, buffer + buffer_pos, buffer_len, (__u64) io_offset);
     io_uring_sqe_set_data(sqe, req);
 
     return (uint64_t) buffer;
 }
 
 JNIEXPORT jlong JNICALL
-Java_sh_blake_niouring_IoUring_queueWrite(JNIEnv *env, jclass cls, jlong ring_address, jint fd, jobject byte_buffer, jint buffer_pos, jint buffer_len) {
+Java_sh_blake_niouring_IoUring_queueWrite(JNIEnv *env, jclass cls, jlong ring_address, jint fd, jobject byte_buffer, jint buffer_pos, jint buffer_len, jlong io_offset) {
     void *buffer = (*env)->GetDirectBufferAddress(env, byte_buffer);
     if (buffer == NULL) {
         return throw_exception(env, "invalid byte buffer (write)", -EINVAL);
@@ -268,7 +268,7 @@ Java_sh_blake_niouring_IoUring_queueWrite(JNIEnv *env, jclass cls, jlong ring_ad
     req->buffer_addr = buffer;
     req->fd = fd;
 
-    io_uring_prep_write(sqe, fd, buffer + buffer_pos, buffer_len, 0);
+    io_uring_prep_write(sqe, fd, buffer + buffer_pos, buffer_len, (uint64_t) io_offset);
     io_uring_sqe_set_data(sqe, req);
 
     return (uint64_t) buffer;
