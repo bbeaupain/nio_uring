@@ -35,21 +35,24 @@ JNIEXPORT jlong JNICALL
 Java_sh_blake_niouring_IoUring_createCqes(JNIEnv *env, jclass cls, jint count) {
     struct io_uring_cqe **cqes = malloc(sizeof(struct io_uring_cqe *) * count);
     if (!cqes) {
-        return throw_out_of_memory_error(env);
+        throw_out_of_memory_error(env);
+        return -1;
     }
-    return cqes;
+    return (jlong) cqes;
 }
 
 JNIEXPORT jlong JNICALL
 Java_sh_blake_niouring_IoUring_create(JNIEnv *env, jclass cls, jint maxEvents) {
     struct io_uring *ring = malloc(sizeof(struct io_uring));
     if (!ring) {
-        return throw_out_of_memory_error(env);
+        throw_out_of_memory_error(env);
+        return -1;
     }
 
     int32_t ret = io_uring_queue_init(maxEvents, ring, 0);
     if (ret < 0) {
-        return throw_exception(env, "io_uring_queue_init", ret);
+        throw_exception(env, "io_uring_queue_init", ret);
+        return -1;
     }
 
     return (uint64_t) ring;
@@ -68,7 +71,8 @@ Java_sh_blake_niouring_IoUring_submitAndGetCqes(JNIEnv *env, jclass cls, jlong r
     int32_t ret = io_uring_submit(ring);
     if (ret < 0) {
         if (ret != -EBUSY) { // if busy, continue handling completions
-            return throw_exception(env, "io_uring_submit", ret);
+            throw_exception(env, "io_uring_submit", ret);
+            return -1;
         }
     }
 
@@ -77,14 +81,16 @@ Java_sh_blake_niouring_IoUring_submitAndGetCqes(JNIEnv *env, jclass cls, jlong r
     if (ret == 0 && should_wait) {
         ret = io_uring_wait_cqe(ring, cqes);
         if (ret < 0) {
-            return throw_exception(env, "io_uring_wait_cqe", ret);
+            throw_exception(env, "io_uring_wait_cqe", ret);
+            return -1;
         }
         ret = 1;
     }
 
     char *buffer = (*env)->GetDirectBufferAddress(env, byte_buffer);
     if (buffer == NULL) {
-        return throw_exception(env, "invalid byte buffer (read)", -EINVAL);
+        throw_exception(env, "invalid byte buffer (read)", -EINVAL);
+        return -1;
     }
 
     long buf_capacity = (*env)->GetDirectBufferCapacity(env, byte_buffer);
@@ -96,7 +102,8 @@ Java_sh_blake_niouring_IoUring_submitAndGetCqes(JNIEnv *env, jclass cls, jlong r
         struct request *req = (struct request *) cqe->user_data;
 
         if (buf_index + 9 >= buf_capacity) {
-            return throw_buffer_overflow_exception(env);
+            throw_buffer_overflow_exception(env);
+            return -1;
         }
 
         buffer[buf_index++] = cqe->res >> 24;
@@ -113,7 +120,8 @@ Java_sh_blake_niouring_IoUring_submitAndGetCqes(JNIEnv *env, jclass cls, jlong r
 
         if (req->event_type == EVENT_TYPE_READ || req->event_type == EVENT_TYPE_WRITE) {
             if (buf_index + 8 >= buf_capacity) {
-                return throw_buffer_overflow_exception(env);
+                throw_buffer_overflow_exception(env);
+                return -1;
             }
 
             buffer[buf_index++] = req->buffer_addr >> 56;
@@ -152,7 +160,7 @@ Java_sh_blake_niouring_IoUring_markCqeSeen(JNIEnv *env, jclass cls, jlong ring_a
     struct io_uring *ring = (struct io_uring *) ring_address;
     struct io_uring_cqe **cqes = (struct io_uring_cqe **) cqes_address;
     struct io_uring_cqe *cqe = cqes[cqe_index];
-    struct request *req = cqe->user_data;
+    struct request *req = (struct request *) cqe->user_data;
 
     free(req);
     io_uring_cqe_seen(ring, cqe);
@@ -164,13 +172,15 @@ Java_sh_blake_niouring_IoUring_queueAccept(JNIEnv *env, jclass cls, jlong ring_a
 
     struct io_uring_sqe *sqe = io_uring_get_sqe(ring);
     if (sqe == NULL) {
-        return throw_exception(env, "io_uring_get_sqe", -EBUSY);
+        throw_exception(env, "io_uring_get_sqe", -EBUSY);
+        return;
     }
     sqe->cancel_flags = IORING_ASYNC_CANCEL_FD;
 
     struct accept_request *req = malloc(sizeof(*req));
     if (!req) {
-        return throw_out_of_memory_error(env);
+        throw_out_of_memory_error(env);
+        return;
     }
     memset(&req->client_addr, 0, sizeof(req->client_addr));
     req->client_addr_len = sizeof(req->client_addr);
@@ -187,15 +197,16 @@ Java_sh_blake_niouring_IoUring_queueConnect(JNIEnv *env, jclass cls, jlong ring_
 
     struct io_uring_sqe *sqe = io_uring_get_sqe(ring);
     if (sqe == NULL) {
-        return throw_exception(env, "io_uring_get_sqe", -EBUSY);
+        throw_exception(env, "io_uring_get_sqe", -EBUSY);
+        return;
     }
-    sqe->cancel_flags = IORING_ASYNC_CANCEL_FD;
 
     struct accept_request *req = malloc(sizeof(*req));
     if (!req) {
-        return throw_out_of_memory_error(env);
+        throw_out_of_memory_error(env);
+        return;
     }
-    char *ip = (*env)->GetStringUTFChars(env, ip_address, NULL);
+    const char *ip = (*env)->GetStringUTFChars(env, ip_address, NULL);
     memset(&req->client_addr, 0, sizeof(req->client_addr));
     req->client_addr.sin_addr.s_addr = inet_addr(ip);
     req->client_addr.sin_port = htons(port);
@@ -213,27 +224,31 @@ JNIEXPORT jlong JNICALL
 Java_sh_blake_niouring_IoUring_queueRead(JNIEnv *env, jclass cls, jlong ring_address, jint fd, jobject byte_buffer, jint buffer_pos, jint buffer_len, jlong io_offset) {
     void *buffer = (*env)->GetDirectBufferAddress(env, byte_buffer);
     if (buffer == NULL) {
-        return throw_exception(env, "invalid byte buffer (read)", -EINVAL);
+        throw_exception(env, "invalid byte buffer (read)", -EINVAL);
+        return -1;
     }
 
     struct io_uring *ring = (struct io_uring *) ring_address;
     if (io_uring_sq_space_left(ring) <= 1) {
-        return throw_exception(env, "io_uring_sq_space_left", -EBUSY);
+        throw_exception(env, "io_uring_sq_space_left", -EBUSY);
+        return -1;
     }
 
     struct io_uring_sqe *sqe = io_uring_get_sqe(ring);
     if (sqe == NULL) {
-        return throw_exception(env, "io_uring_get_sqe", -EBUSY);
+        throw_exception(env, "io_uring_get_sqe", -EBUSY);
+        return -1;
     }
 
     sqe->cancel_flags = IORING_ASYNC_CANCEL_FD;
 
     struct request *req = malloc(sizeof(*req));
     if (!req) {
-        return throw_out_of_memory_error(env);
+        throw_out_of_memory_error(env);
+        return -1;
     }
     req->event_type = EVENT_TYPE_READ;
-    req->buffer_addr = buffer;
+    req->buffer_addr = (int64_t) buffer;
     req->fd = fd;
 
     io_uring_prep_read(sqe, fd, buffer + buffer_pos, buffer_len, (__u64) io_offset);
@@ -246,26 +261,30 @@ JNIEXPORT jlong JNICALL
 Java_sh_blake_niouring_IoUring_queueWrite(JNIEnv *env, jclass cls, jlong ring_address, jint fd, jobject byte_buffer, jint buffer_pos, jint buffer_len, jlong io_offset) {
     void *buffer = (*env)->GetDirectBufferAddress(env, byte_buffer);
     if (buffer == NULL) {
-        return throw_exception(env, "invalid byte buffer (write)", -EINVAL);
+        throw_exception(env, "invalid byte buffer (write)", -EINVAL);
+        return -1;
     }
 
     struct io_uring *ring = (struct io_uring *) ring_address;
     if (io_uring_sq_space_left(ring) <= 1) {
-        return throw_exception(env, "io_uring_sq_space_left", -EBUSY);
+        throw_exception(env, "io_uring_sq_space_left", -EBUSY);
+        return -1;
     }
 
     struct io_uring_sqe *sqe = io_uring_get_sqe(ring);
     if (sqe == NULL) {
-        return throw_exception(env, "io_uring_get_sqe", -EBUSY);
+        throw_exception(env, "io_uring_get_sqe", -EBUSY);
+        return -1;
     }
     sqe->cancel_flags = IORING_ASYNC_CANCEL_FD;
 
     struct request *req = malloc(sizeof(*req));
     if (!req) {
-        return throw_out_of_memory_error(env);
+        throw_out_of_memory_error(env);
+        return -1;
     }
     req->event_type = EVENT_TYPE_WRITE;
-    req->buffer_addr = buffer;
+    req->buffer_addr = (int64_t) buffer;
     req->fd = fd;
 
     io_uring_prep_write(sqe, fd, buffer + buffer_pos, buffer_len, (uint64_t) io_offset);
@@ -278,18 +297,21 @@ JNIEXPORT void JNICALL
 Java_sh_blake_niouring_IoUring_queueClose(JNIEnv *env, jclass cls, jlong ring_address, jint fd) {
     struct io_uring *ring = (struct io_uring *) ring_address;
     if (io_uring_sq_space_left(ring) <= 1) {
-        return throw_exception(env, "io_uring_sq_space_left", -EBUSY);
+        throw_exception(env, "io_uring_sq_space_left", -EBUSY);
+        return;
     }
 
     struct io_uring_sqe *sqe = io_uring_get_sqe(ring);
     if (sqe == NULL) {
-        return throw_exception(env, "io_uring_get_sqe", -EBUSY);
+        throw_exception(env, "io_uring_get_sqe", -EBUSY);
+        return;
     }
     sqe->cancel_flags = IORING_ASYNC_CANCEL_FD;
 
     struct request *req = malloc(sizeof(*req));
     if (!req) {
-        return throw_out_of_memory_error(env);
+        throw_out_of_memory_error(env);
+        return;
     }
     req->event_type = EVENT_TYPE_CLOSE;
     req->fd = fd;
@@ -307,7 +329,7 @@ Java_sh_blake_niouring_AbstractIoUringChannel_close(JNIEnv *env, jclass cls, jin
 int32_t throw_exception(JNIEnv *env, char *cause, int32_t ret) {
     char error_msg[1024];
     snprintf(error_msg, sizeof(error_msg), "%s - %s", cause, strerror(-ret));
-    return (*env)->ThrowNew(env, (*env)->FindClass(env, "java/lang/RuntimeException"), &error_msg);
+    return (*env)->ThrowNew(env, (*env)->FindClass(env, "java/lang/RuntimeException"), (const char *) &error_msg);
 }
 
 int32_t throw_out_of_memory_error(JNIEnv *env) {
