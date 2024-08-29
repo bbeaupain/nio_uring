@@ -17,17 +17,20 @@ Java_sh_blake_niouring_AbstractIoUringSocket_create(JNIEnv *env, jclass cls) {
 
     int32_t fd = socket(PF_INET, SOCK_STREAM, 0);
     if (fd == -1) {
-        return throw_exception(env, "socket", fd);
+        throw_exception(env, "socket", fd);
+        return -1;
     }
 
     int32_t ret = setsockopt(fd, SOL_SOCKET, SO_REUSEADDR, &val, sizeof(int));
     if (ret < 0) {
-        return throw_exception(env, "setsockopt", ret);
+        throw_exception(env, "setsockopt", ret);
+        return -1;
     }
 
     ret = setsockopt(fd, SOL_SOCKET, SO_REUSEPORT, &val, sizeof(val));
     if (ret == -1) {
-        return throw_exception(env, "setsockopt", ret);
+        throw_exception(env, "setsockopt", ret);
+        return -1;
     }
 
     return (uint32_t) fd;
@@ -47,11 +50,13 @@ Java_sh_blake_niouring_IoUringServerSocket_bind(JNIEnv *env, jclass cls, jlong s
 
     int32_t ret = bind(server_socket_fd, (const struct sockaddr *) &srv_addr, sizeof(srv_addr));
     if (ret < 0) {
-        return throw_exception(env, "bind", ret);
+        throw_exception(env, "bind", ret);
+        return;
     }
 
     ret = listen(server_socket_fd, backlog);
     if (ret < 0) {
-        return throw_exception(env, "io_uring_get_sqe", -16);
+        throw_exception(env, "io_uring_get_sqe", -16);
+        return;
     }
 }
