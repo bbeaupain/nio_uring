@@ -12,14 +12,14 @@ public class IoUringFileTest extends TestBase {
 
     @Test
     public void open_and_read_readme_should_succeed() {
-        String fileName = "README.md";
+        String fileName = "src/test/resources/test-file.txt";
         AtomicBoolean readSuccessfully = new AtomicBoolean(false);
 
         IoUringFile file = new IoUringFile(fileName);
         file.onRead(in -> {
             in.flip();
             String fileStr = StandardCharsets.UTF_8.decode(in).toString();
-            if (fileStr.startsWith("# nio_uring")) {
+            if (fileStr.startsWith("Hello, world!")) {
                 readSuccessfully.set(true);
             }
         });
@@ -36,12 +36,10 @@ public class IoUringFileTest extends TestBase {
 
     @Test
     public void seek_read_readme_should_succeed() {
-        // This test is fragile and will need to be maintained
-        // as the README is updated.
-        String fileName = "README.md";
+        String fileName = "src/test/resources/test-file.txt";
         AtomicInteger readCounter = new AtomicInteger(0);
         AtomicBoolean seekSuccessfully = new AtomicBoolean(false);
-        int chunkSize = 1024;
+        int chunkSize = 7;
         ByteBuffer buffer = ByteBuffer.allocateDirect(chunkSize);
 
         IoUring ioUring = new IoUring(TEST_RING_SIZE)
@@ -56,7 +54,7 @@ public class IoUringFileTest extends TestBase {
             if (count == 1) {
                 in.clear(); // reuse the buffer provided
                 ioUring.queueRead(file, in, chunkSize); // read with offset
-            } else if (fileStr.startsWith("et = new IoUringServerSocket(8080);")) {
+            } else if (fileStr.startsWith("world!")) {
                 seekSuccessfully.set(true);
             }
         });
