@@ -251,7 +251,7 @@ Java_sh_blake_niouring_IoUring_queueRead(JNIEnv *env, jclass cls, jlong ring_add
     req->buffer_addr = (int64_t) buffer;
     req->fd = fd;
 
-    io_uring_prep_read(sqe, fd, buffer + buffer_pos, buffer_len, (__u64) io_offset);
+    io_uring_prep_read(sqe, fd, buffer + buffer_pos, buffer_len, (uint64_t) io_offset);
     io_uring_sqe_set_data(sqe, req);
 
     return (uint64_t) buffer;
